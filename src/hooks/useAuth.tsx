@@ -70,6 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkAuth = async () => {
       setLoading(true);
       const storedToken = localStorage.getItem("auth_token");
+      const publicPaths = ["/login", "/change-password", "/activation-success"]; // Add public routes here
+      const currentPath = window.location.pathname;
 
       if (storedToken) {
         setToken(storedToken);
@@ -78,10 +80,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           localStorage.removeItem("auth_token");
           setToken(null);
-          navigate("/login");
+          if (!publicPaths.includes(currentPath)) {
+            navigate("/login");
+          }
         }
       } else {
-        navigate("/login");
+        if (!publicPaths.includes(currentPath)) {
+          navigate("/login");
+        }
       }
       setLoading(false);
     };

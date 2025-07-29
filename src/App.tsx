@@ -34,6 +34,8 @@ import ChurchCalendar from "./pages/church/ChurchCalendar";
 import ChurchPerformance from "./pages/church/ChurchPerformance";
 import ChurchEndorsements from "./pages/church/ChurchEndorsements";
 import PrayerChain from "./pages/church/PrayerChain";
+import ChangePassword from "./pages/ChangePassword";
+import ActivationSuccess from "./pages/ActivationSuccess";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +49,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="/activation-success" element={<ActivationSuccess />} />
+
             <Route
               path="/parent/*"
               element={

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -39,36 +40,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import {
-  MoreHorizontal,
-  Plus,
-  Edit,
-  Trash2,
-  Users,
-  Calendar,
-} from "lucide-react";
+import { MoreHorizontal, Plus, Edit, Trash2, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import axios from "axios";
 
+// Define the FamilyMember interface to match the backend's FamilyMemberOut schema
 interface FamilyMember {
-  id: string;
+  id: number;
   name: string;
-  dob: string | null;
-  contact: string | null;
-  gender: string | null;
-  education: string | null;
-  employment: string | null;
-  bcc_class: string | null;
-  grad_year: number | null;
-  grad_mode: string | null;
-  parental_status: string | null;
-  created_at: string;
-  updated_at: string;
+  phone: string;
+  email?: string | null;
+  home_address?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  education_level?: string | null;
+  employment_status?: string | null;
+  bcc_class_participation?: boolean | null;
+  year_of_graduation?: number | null;
+  graduation_mode?: string | null;
+  parental_status?: boolean | null;
+  family_id: number;
+  age: number;
 }
 
 export function FamilyMembersTable() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { toast } = useToast();
 
   const [members, setMembers] = useState<FamilyMember[]>([]);
@@ -78,46 +75,58 @@ export function FamilyMembersTable() {
 
   const [formData, setFormData] = useState({
     name: "",
-    dob: "",
-    contact: "",
+    phone: "",
+    email: "",
+    home_address: "",
+    date_of_birth: "",
     gender: "",
-    education: "",
-    employment: "",
-    bcc_class: "",
-    grad_year: "",
-    grad_mode: "",
+    education_level: "",
+    employment_status: "",
+    bcc_class_participation: false,
+    year_of_graduation: "",
+    graduation_mode: "",
     parental_status: "",
   });
+
+  // Base API URL
+  const API_BASE_URL = "http://localhost:8000/family/family-members";
+
+  // Axios instance with default headers
+  const axiosInstance = useMemo(
+    () =>
+      axios.create({
+        baseURL: API_BASE_URL,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
+    [token]
+  );
+
+  const fetchFamilyMembers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get("/");
+      setMembers(response.data);
+    } catch (error: any) {
+      console.error("Error fetching family members:", error);
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.detail || "Failed to fetch family members",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [axiosInstance, toast]);
 
   // Fetch family members
   useEffect(() => {
     if (user) {
       fetchFamilyMembers();
     }
-  }, [user]);
-
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return;
-
-    // Removed Supabase subscription logic
-  }, [user]);
-
-  const fetchFamilyMembers = async () => {
-    try {
-      // Removed Supabase fetch logic
-      setMembers([]); // Placeholder for now
-    } catch (error) {
-      console.error("Error fetching family members:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch family members",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchFamilyMembers, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,19 +134,65 @@ export function FamilyMembersTable() {
     if (!user) return;
 
     try {
-      // Removed Supabase save logic
-      toast({
-        title: "Member Added",
-        description: `${formData.name} has been added to your family.`,
-      });
+      const payload = {
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email || null,
+        home_address: formData.home_address || null,
+        date_of_birth: formData.date_of_birth || null,
+        gender: formData.gender ? formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1) : null, // Capitalize first letter
+        education_level: formData.education_level || null,
+        employment_status: formData.employment_status || null,
+        bcc_class_participation: formData.bcc_class_participation || null,
+        year_of_graduation: formData.year_of_graduation
+          ? parseInt(formData.year_of_graduation)
+          : null,
+        graduation_mode: formData.graduation_mode
+          ? formData.graduation_mode.charAt(0).toUpperCase() + formData.graduation_mode.slice(1)
+          : null, // Capitalize first letter
+        parental_status:
+          formData.parental_status === "true"
+            ? true
+            : formData.parental_status === "false"
+            ? false
+            : null,
+        family_id: user.family_id,
+      };
+
+      if (editingMember) {
+        // Update existing member
+        await axiosInstance.put(`/${editingMember.id}`, payload);
+        toast({
+          title: "Member Updated",
+          description: `${formData.name} has been updated successfully.`,
+        });
+      } else {
+        // Create new member
+        await axiosInstance.post("/", payload);
+        toast({
+          title: "Member Added",
+          description: `${formData.name} has been added to your family.`,
+        });
+      }
 
       resetForm();
       setIsDialogOpen(false);
+      fetchFamilyMembers();
     } catch (error: any) {
       console.error("Error saving family member:", error);
+      let errorMessage = "Failed to save family member";
+      if (error.response?.data?.detail) {
+        if (Array.isArray(error.response.data.detail)) {
+          errorMessage = error.response.data.detail
+            .map((err: any) => err.msg)
+            .join(", ");
+        } else {
+          errorMessage = error.response.data.detail;
+        }
+      }
       toast({
         title: "Error",
-        description: error.message || "Failed to save family member",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -147,31 +202,44 @@ export function FamilyMembersTable() {
     setEditingMember(member);
     setFormData({
       name: member.name,
-      dob: member.dob || "",
-      contact: member.contact || "",
-      gender: member.gender || "",
-      education: member.education || "",
-      employment: member.employment || "",
-      bcc_class: member.bcc_class || "",
-      grad_year: member.grad_year?.toString() || "",
-      grad_mode: member.grad_mode || "",
-      parental_status: member.parental_status || "",
+      phone: member.phone,
+      email: member.email || "",
+      home_address: member.home_address || "",
+      date_of_birth: member.date_of_birth || "",
+      gender: member.gender ? member.gender.toLowerCase() : "", // Convert to lowercase for form
+      education_level: member.education_level || "",
+      employment_status: member.employment_status || "",
+      bcc_class_participation: member.bcc_class_participation || false,
+      year_of_graduation: member.year_of_graduation?.toString() || "",
+      graduation_mode: member.graduation_mode ? member.graduation_mode.toLowerCase() : "", // Convert to lowercase for form
+      parental_status: member.parental_status?.toString() || "",
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (memberId: string) => {
+  const handleDelete = async (memberId: number) => {
     try {
-      // Removed Supabase delete logic
+      await axiosInstance.delete(`/${memberId}`);
       toast({
         title: "Member Deleted",
         description: "Family member has been removed successfully.",
       });
+      fetchFamilyMembers();
     } catch (error: any) {
       console.error("Error deleting family member:", error);
+      let errorMessage = "Failed to delete family member";
+      if (error.response?.data?.detail) {
+        if (Array.isArray(error.response.data.detail)) {
+          errorMessage = error.response.data.detail
+            .map((err: any) => err.msg)
+            .join(", ");
+        } else {
+          errorMessage = error.response.data.detail;
+        }
+      }
       toast({
         title: "Error",
-        description: error.message || "Failed to delete family member",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -180,32 +248,19 @@ export function FamilyMembersTable() {
   const resetForm = () => {
     setFormData({
       name: "",
-      dob: "",
-      contact: "",
+      phone: "",
+      email: "",
+      home_address: "",
+      date_of_birth: "",
       gender: "",
-      education: "",
-      employment: "",
-      bcc_class: "",
-      grad_year: "",
-      grad_mode: "",
+      education_level: "",
+      employment_status: "",
+      bcc_class_participation: false,
+      year_of_graduation: "",
+      graduation_mode: "",
       parental_status: "",
     });
     setEditingMember(null);
-  };
-
-  const calculateAge = (dob: string | null) => {
-    if (!dob) return "N/A";
-    const today = new Date();
-    const birthDate = new Date(dob);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
-    return age;
   };
 
   if (loading) {
@@ -280,13 +335,57 @@ export function FamilyMembersTable() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth</Label>
+                    <Label htmlFor="phone">Phone *</Label>
                     <Input
-                      id="dob"
-                      type="date"
-                      value={formData.dob}
+                      id="phone"
+                      value={formData.phone}
                       onChange={(e) =>
-                        setFormData({ ...formData, dob: e.target.value })
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      required
+                      className="rounded-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      className="rounded-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="home_address">Home Address</Label>
+                    <Input
+                      id="home_address"
+                      value={formData.home_address}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          home_address: e.target.value,
+                        })
+                      }
+                      className="rounded-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="date_of_birth">Date of Birth</Label>
+                    <Input
+                      id="date_of_birth"
+                      type="date"
+                      value={formData.date_of_birth}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          date_of_birth: e.target.value,
+                        })
                       }
                       className="rounded-xl"
                     />
@@ -311,103 +410,124 @@ export function FamilyMembersTable() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="contact">Contact</Label>
-                    <Input
-                      id="contact"
-                      value={formData.contact}
-                      onChange={(e) =>
-                        setFormData({ ...formData, contact: e.target.value })
+                    <Label htmlFor="education_level">Education Level</Label>
+                    <Select
+                      value={formData.education_level}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, education_level: value })
                       }
-                      placeholder="Phone or email"
-                      className="rounded-xl"
-                    />
+                    >
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Select education level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="primary">Primary</SelectItem>
+                        <SelectItem value="secondary">Secondary</SelectItem>
+                        <SelectItem value="tertiary">Tertiary</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="education">Education</Label>
-                    <Input
-                      id="education"
-                      value={formData.education}
-                      onChange={(e) =>
-                        setFormData({ ...formData, education: e.target.value })
+                    <Label htmlFor="employment_status">Employment Status</Label>
+                    <Select
+                      value={formData.employment_status}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, employment_status: value })
                       }
-                      placeholder="e.g., High School, University"
-                      className="rounded-xl"
-                    />
+                    >
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Select employment status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employed">Employed</SelectItem>
+                        <SelectItem value="unemployed">Unemployed</SelectItem>
+                        <SelectItem value="student">Student</SelectItem>
+                        <SelectItem value="retired">Retired</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="employment">Employment</Label>
-                    <Input
-                      id="employment"
-                      value={formData.employment}
-                      onChange={(e) =>
-                        setFormData({ ...formData, employment: e.target.value })
+                    <Label htmlFor="bcc_class_participation">
+                      BCC Class Participation
+                    </Label>
+                    <Select
+                      value={formData.bcc_class_participation.toString()}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          bcc_class_participation: value === "true",
+                        })
                       }
-                      placeholder="e.g., Student, Engineer"
-                      className="rounded-xl"
-                    />
+                    >
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Select participation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="false">No</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="bcc_class">BCC Class</Label>
+                    <Label htmlFor="year_of_graduation">
+                      Year of Graduation
+                    </Label>
                     <Input
-                      id="bcc_class"
-                      value={formData.bcc_class}
-                      onChange={(e) =>
-                        setFormData({ ...formData, bcc_class: e.target.value })
-                      }
-                      placeholder="e.g., Young Adult Class"
-                      className="rounded-xl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="grad_year">Graduation Year</Label>
-                    <Input
-                      id="grad_year"
+                      id="year_of_graduation"
                       type="number"
-                      value={formData.grad_year}
+                      value={formData.year_of_graduation}
                       onChange={(e) =>
-                        setFormData({ ...formData, grad_year: e.target.value })
+                        setFormData({
+                          ...formData,
+                          year_of_graduation: e.target.value,
+                        })
                       }
                       placeholder="e.g., 2025"
                       className="rounded-xl"
                     />
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="grad_mode">Graduation Mode</Label>
-                  <Input
-                    id="grad_mode"
-                    value={formData.grad_mode}
-                    onChange={(e) =>
-                      setFormData({ ...formData, grad_mode: e.target.value })
-                    }
-                    placeholder="e.g., Bachelor's Degree"
-                    className="rounded-xl"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="graduation_mode">Graduation Mode</Label>
+                    <Select
+                      value={formData.graduation_mode}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, graduation_mode: value })
+                      }
+                    >
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Select graduation mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Online">Online</SelectItem>
+                        <SelectItem value="Physical">Physical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="parental_status">Parental Status</Label>
-                  <Select
-                    value={formData.parental_status}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, parental_status: value })
-                    }
-                  >
-                    <SelectTrigger className="rounded-xl">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Single">Single</SelectItem>
-                      <SelectItem value="Married">Married</SelectItem>
-                      <SelectItem value="Divorced">Divorced</SelectItem>
-                      <SelectItem value="Widowed">Widowed</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <Label htmlFor="parental_status">Parental Status</Label>
+                    <Select
+                      value={formData.parental_status}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, parental_status: value })
+                      }
+                    >
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Parent</SelectItem>
+                        <SelectItem value="false">Not a Parent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="flex justify-end space-x-2 pt-4">
@@ -451,39 +571,40 @@ export function FamilyMembersTable() {
                     <div>
                       <p className="font-medium">{member.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        Age: {calculateAge(member.dob)} •{" "}
-                        {member.gender || "Not specified"}
+                        Age: {member.age} • {member.gender || "Not specified"}
                       </p>
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    {member.contact || "Not provided"}
+                    {member.phone} {member.email && `• ${member.email}`}
                   </TableCell>
                   <TableCell>
                     <div>
                       <p className="text-sm font-medium">
-                        {member.education || "Not specified"}
+                        {member.education_level || "Not specified"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {member.employment || "Not specified"}
+                        {member.employment_status || "Not specified"}
                       </p>
                     </div>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
                     <div>
                       <p className="text-sm">
-                        {member.bcc_class || "Not assigned"}
+                        {member.bcc_class_participation
+                          ? "Participating"
+                          : "Not participating"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {member.grad_year
-                          ? `Graduating ${member.grad_year}`
+                        {member.year_of_graduation
+                          ? `Graduating ${member.year_of_graduation} (${member.graduation_mode})`
                           : "No graduation info"}
                       </p>
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <Badge variant="secondary">
-                      {member.parental_status || "Not specified"}
+                      {member.parental_status ? "Parent" : "Not a Parent"}
                     </Badge>
                   </TableCell>
                   <TableCell>

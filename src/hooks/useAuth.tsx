@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch user data from backend using the token
   const fetchUserData = async (authToken: string) => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/users/me", {
+      const response = await axios.get("http://localhost:8000/users/me", {
         headers: { Authorization: `Bearer ${authToken}` },
       });
 
@@ -70,7 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkAuth = async () => {
       setLoading(true);
       const storedToken = localStorage.getItem("auth_token");
-      const publicPaths = ["/login", "/change-password", "/activation-success"]; // Add public routes here
+      const publicPaths = [
+        "/",
+        "/login",
+        "/change-password",
+        "/activation-success",
+      ]; // Add public routes here
       const currentPath = window.location.pathname;
 
       if (storedToken) {
@@ -108,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       formData.append("password", password);
 
       const response = await axios.post<TokenResponse>(
-        "http://127.0.0.1:8000/auth/token",
+        "http://localhost:8000/auth/token",
         formData.toString(),
         {
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -120,12 +125,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("auth_token", access_token);
       setToken(access_token);
 
-      await fetchUserData(access_token);
+      const userData = await fetchUserData(access_token);
 
       toast({
         title: "Signed In",
         description: "You have been successfully signed in.",
       });
+
+      // Redirect based on role here:
+      const redirectPath = roleRoutes[userData.role] || "/youth";
+      navigate(redirectPath);
 
       return {};
     } catch (error) {

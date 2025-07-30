@@ -51,7 +51,6 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/activation-success" element={<ActivationSuccess />} />
-
             <Route
               path="/parent/*"
               element={

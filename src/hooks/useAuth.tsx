@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Père: "/parent",
     Mère: "/parent",
     Other: "/youth",
+    Pastor: "/church",
   };
 
   // Fetch user data from backend using the token

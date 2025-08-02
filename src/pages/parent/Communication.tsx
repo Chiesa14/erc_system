@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -31,6 +31,9 @@ import {
   MoreVertical,
   ArrowLeft,
   UserPlus,
+  Reply,
+  Forward,
+  Heart,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -43,6 +46,12 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // User interface based on provided schema
 interface User {
@@ -57,78 +66,449 @@ interface User {
   role: string;
   other: string;
   biography: string;
-  profile_pic: string;
+  profile_pic: string | null;
   created_at: string;
   updated_at: string;
 }
+
+// Message interface aligned with backend schema
+interface Message {
+  id: number; // Backend uses 'id' not 'message_id'
+  chat_room_id: number;
+  sender_id: number;
+  sender?: User; // Support sender object
+  content: string;
+  message_type:
+    | "text"
+    | "image"
+    | "audio"
+    | "video"
+    | "file"
+    | "location"
+    | "contact"
+    | "sticker"
+    | "gif";
+  created_at: string;
+  updated_at: string;
+  is_edited: boolean;
+  is_deleted: boolean;
+  is_pinned: boolean;
+  is_scheduled: boolean;
+  reply_to_message_id?: number | null;
+  reply_to_message?: Message | null;
+  status: "sent" | "delivered" | "read" | "failed";
+  delivered_at?: string | null;
+  read_at?: string | null;
+  scheduled_at?: string | null;
+  auto_delete_at?: string | null;
+  forward_count: number;
+  // File-related fields
+  file_url?: string | null;
+  file_name?: string | null;
+  file_size?: number | null;
+  file_type?: string | null;
+  thumbnail_url?: string | null;
+  // Audio-related fields
+  audio_duration?: number | null;
+  audio_waveform?: any | null;
+  transcription?: string | null;
+  // Location-related fields
+  latitude?: number | null;
+  longitude?: number | null;
+  location_name?: string | null;
+  // Contact data
+  contact_data?: any | null;
+  // Relations
+  reactions: MessageReaction[];
+  edit_history: MessageEditHistory[];
+  read_receipts: MessageReadReceipt[];
+}
+
+interface MessageReaction {
+  id: number;
+  user_id: number;
+  user: User;
+  emoji: string;
+  created_at: string;
+}
+
+interface MessageEditHistory {
+  id: number;
+  old_content: string;
+  edited_at: string;
+}
+
+interface MessageReadReceipt {
+  id: number;
+  user_id: number;
+  user: User;
+  read_at: string;
+}
+
+interface ChatRoom {
+  id: number;
+  name?: string;
+  description?: string;
+  room_type: "direct" | "group" | "channel";
+  avatar_url?: string;
+  is_active: boolean;
+  max_members: number;
+  allow_media: boolean;
+  allow_voice: boolean;
+  allow_file_sharing: boolean;
+  message_retention_days: number;
+  is_encrypted: boolean;
+  created_at: string;
+  updated_at: string;
+  last_activity: string;
+  members: ChatRoomMember[];
+  pinned_messages: PinnedMessage[];
+  unread_count?: number;
+  last_message?: Message;
+}
+
+interface ChatRoomMember {
+  id: number;
+  chat_room_id: number;
+  user_id: number;
+  user: User;
+  role: "member" | "admin" | "owner" | "moderator";
+  can_send_messages: boolean;
+  can_send_media: boolean;
+  can_add_members: boolean;
+  can_remove_members: boolean;
+  can_edit_room: boolean;
+  can_pin_messages: boolean;
+  is_muted: boolean;
+  muted_until?: string;
+  is_blocked: boolean;
+  joined_at: string;
+  last_seen: string;
+  last_read_message_id?: number;
+}
+
+interface PinnedMessage {
+  id: number;
+  message_id: number;
+  message: Message;
+  pinned_by_user_id: number;
+  pinned_by: User;
+  pinned_at: string;
+}
+
+// Normalize message data to ensure consistent structure
+const normalizeMessage = (msg: any): Message => ({
+  id: msg.id || msg.message_id, // Handle both 'id' and 'message_id' fields
+  chat_room_id: msg.chat_room_id,
+  sender_id: msg.sender_id,
+  sender: msg.sender,
+  content: msg.content || "",
+  message_type: msg.message_type || "text",
+  created_at: msg.created_at,
+  updated_at: msg.updated_at,
+  is_edited: msg.is_edited ?? false,
+  is_deleted: msg.is_deleted ?? false,
+  is_pinned: msg.is_pinned ?? false,
+  is_scheduled: msg.is_scheduled ?? false,
+  reply_to_message_id: msg.reply_to_message_id,
+  reply_to_message: msg.reply_to_message
+    ? normalizeMessage(msg.reply_to_message)
+    : null,
+  status: msg.status || "sent",
+  delivered_at: msg.delivered_at,
+  read_at: msg.read_at,
+  scheduled_at: msg.scheduled_at,
+  auto_delete_at: msg.auto_delete_at,
+  forward_count: msg.forward_count ?? 0,
+  // File-related fields
+  file_url: msg.file_url,
+  file_name: msg.file_name,
+  file_size: msg.file_size,
+  file_type: msg.file_type,
+  thumbnail_url: msg.thumbnail_url,
+  // Audio-related fields
+  audio_duration: msg.audio_duration,
+  audio_waveform: msg.audio_waveform,
+  transcription: msg.transcription,
+  // Location-related fields
+  latitude: msg.latitude,
+  longitude: msg.longitude,
+  location_name: msg.location_name,
+  // Contact data
+  contact_data: msg.contact_data,
+  // Relations
+  reactions: msg.reactions ?? [],
+  edit_history: msg.edit_history ?? [],
+  read_receipts: msg.read_receipts ?? [],
+});
 
 // WebSocket Hook for Chat
 const useChatWebSocket = (
   user: any,
   token: string,
-  setChatRooms: React.Dispatch<React.SetStateAction<any[]>>
+  setChatRooms: React.Dispatch<React.SetStateAction<ChatRoom[]>>
 ) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [messages, setMessages] = useState<{ [key: number]: any[] }>({});
+  const [messages, setMessages] = useState<{ [key: number]: Message[] }>({});
   const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
   const [typingUsers, setTypingUsers] = useState<{
     [key: number]: { [key: number]: boolean };
   }>({});
 
+  // Function to load historical messages for a room
+  const loadRoomMessages = useCallback(
+    async (
+      roomId: number,
+      setMessagesLoading?: React.Dispatch<
+        React.SetStateAction<{ [key: number]: boolean }>
+      >,
+      setMessagesError?: React.Dispatch<
+        React.SetStateAction<{ [key: number]: string | null }>
+      >
+    ) => {
+      if (!token) return;
+
+      // Set loading state
+      if (setMessagesLoading) {
+        setMessagesLoading((prev) => ({ ...prev, [roomId]: true }));
+      }
+      if (setMessagesError) {
+        setMessagesError((prev) => ({ ...prev, [roomId]: null }));
+      }
+
+      try {
+        const roomMessages = await chatAPI.getMessages(roomId, token);
+        setMessages((prev) => {
+          const existingMessages = prev[roomId] || [];
+
+          // Merge historical messages with any existing WebSocket messages
+          const allMessages = [...roomMessages];
+
+          // Add any WebSocket messages that aren't in the historical data
+          existingMessages.forEach((existingMsg) => {
+            const isInHistorical = roomMessages.some(
+              (histMsg) => histMsg.id === existingMsg.id
+            );
+            if (!isInHistorical) {
+              allMessages.push(existingMsg);
+            }
+          });
+
+          // Sort all messages by created_at to maintain chronological order
+          const sortedMessages = allMessages.sort(
+            (a, b) =>
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime()
+          );
+
+          return {
+            ...prev,
+            [roomId]: sortedMessages,
+          };
+        });
+      } catch (error) {
+        console.error("Error loading messages for room", roomId, ":", error);
+        if (setMessagesError) {
+          setMessagesError((prev) => ({
+            ...prev,
+            [roomId]:
+              error instanceof Error
+                ? error.message
+                : "Failed to load messages",
+          }));
+        }
+      } finally {
+        if (setMessagesLoading) {
+          setMessagesLoading((prev) => ({ ...prev, [roomId]: false }));
+        }
+      }
+    },
+    [token]
+  );
+
   useEffect(() => {
     if (!user || !token) return;
+
     const wsUrl = `ws://localhost:8000/chat/ws?token=${encodeURIComponent(
       token
     )}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
+      console.log("WebSocket connection opened");
       setIsConnected(true);
       setSocket(ws);
     };
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      switch (data.type) {
-        case "new_message":
-          setMessages((prev) => ({
-            ...prev,
-            [data.data.chat_room_id]: [
-              ...(prev[data.data.chat_room_id] || []),
-              data.data,
-            ],
-          }));
-          break;
-        case "typing_indicator":
-          setTypingUsers((prev) => ({
-            ...prev,
-            [data.data.room_id]: {
-              ...prev[data.data.room_id],
-              [data.data.user_id]: data.data.is_typing,
-            },
-          }));
-          break;
-        case "presence_update":
-          setOnlineUsers((prev) => {
-            const newSet = new Set(prev);
-            if (data.data.is_online) {
-              newSet.add(data.data.user_id);
-            } else {
-              newSet.delete(data.data.user_id);
+      try {
+        const data = JSON.parse(event.data);
+
+        switch (data.type) {
+          case "connection_established":
+            console.log("WebSocket connection established:", data.data);
+            break;
+
+          case "new_message":
+          case "message":
+            // Check for both 'id' and 'message_id' fields
+            if (!data.data?.id && !data.data?.message_id) {
+              console.warn("Received message without id or message_id:", data.data);
+              return;
             }
-            return newSet;
-          });
-          break;
-        case "room_created":
-          chatAPI.getChatRooms(token).then((rooms) => setChatRooms(rooms));
-          break;
+            setMessages((prev) => {
+              const roomId = data.data.chat_room_id;
+              const newMessage = normalizeMessage(data.data);
+              const existingMessages = prev[roomId] || [];
+
+              // Check if message already exists to prevent duplicates
+              const messageExists = existingMessages.some(
+                (msg) => msg.id === newMessage.id
+              );
+
+              if (messageExists) {
+                return prev;
+              }
+
+              // Add new message and sort by created_at to maintain order
+              const updatedMessages = [...existingMessages, newMessage].sort(
+                (a, b) =>
+                  new Date(a.created_at).getTime() -
+                  new Date(b.created_at).getTime()
+              );
+
+              return {
+                ...prev,
+                [roomId]: updatedMessages,
+              };
+            });
+            break;
+
+          case "typing_indicator":
+          case "typing":
+            if (data.data?.room_id && data.data?.user_id !== undefined) {
+              setTypingUsers((prev) => ({
+                ...prev,
+                [data.data.room_id]: {
+                  ...prev[data.data.room_id],
+                  [data.data.user_id]: data.data.is_typing,
+                },
+              }));
+            }
+            break;
+
+          case "presence_update":
+          case "user_online":
+          case "user_offline":
+            if (data.data?.user_id !== undefined) {
+              setOnlineUsers((prev) => {
+                const newSet = new Set(prev);
+                if (data.data.is_online || data.type === "user_online") {
+                  newSet.add(data.data.user_id);
+                } else {
+                  newSet.delete(data.data.user_id);
+                }
+                return newSet;
+              });
+            }
+            break;
+
+          case "room_created":
+          case "room_joined":
+            chatAPI.getChatRooms(token).then((rooms) => setChatRooms(rooms));
+            break;
+
+          case "reaction_added":
+          case "reaction":
+            if (!data.data?.id && !data.data?.message_id) {
+              console.warn("Received reaction without message id:", data.data);
+              return;
+            }
+            setMessages((prev) => {
+              const roomId = data.data.chat_room_id;
+              const messageId = data.data.message_id || data.data.id;
+              const updatedMessages = (prev[roomId] || []).map((msg) =>
+                msg.id === messageId
+                  ? {
+                      ...msg,
+                      reactions: [
+                        ...msg.reactions.filter(
+                          (r) => r.user_id !== data.data.user_id
+                        ),
+                        {
+                          id: Date.now(), // Temporary ID
+                          user_id: data.data.user_id,
+                          user: data.data.user || {
+                            id: data.data.user_id,
+                            full_name: "Unknown",
+                            email: "",
+                          },
+                          emoji: data.data.emoji || data.data.reaction,
+                          created_at: new Date().toISOString(),
+                        },
+                      ],
+                    }
+                  : msg
+              );
+              return { ...prev, [roomId]: updatedMessages };
+            });
+            break;
+
+          case "message_forwarded":
+            // Check for both 'id' and 'message_id' fields
+            if (!data.data?.id && !data.data?.message_id) {
+              console.warn("Received forwarded message without id or message_id:", data.data);
+              return;
+            }
+            setMessages((prev) => {
+              const roomId = data.data.chat_room_id;
+              const newMessage = normalizeMessage(data.data);
+              const existingMessages = prev[roomId] || [];
+
+              // Check if message already exists to prevent duplicates
+              const messageExists = existingMessages.some(
+                (msg) => msg.id === newMessage.id
+              );
+
+              if (messageExists) {
+                return prev;
+              }
+
+              // Add new message and sort by created_at to maintain order
+              const updatedMessages = [...existingMessages, newMessage].sort(
+                (a, b) =>
+                  new Date(a.created_at).getTime() -
+                  new Date(b.created_at).getTime()
+              );
+
+              return {
+                ...prev,
+                [roomId]: updatedMessages,
+              };
+            });
+            break;
+
+          case "error":
+            console.error("WebSocket error:", data.data);
+            break;
+
+          case "pong":
+            // Handle ping/pong for connection health
+            break;
+
+          default:
+            console.log("Unhandled WebSocket message type:", data.type, data);
+        }
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       setIsConnected(false);
       setSocket(null);
+      console.log("WebSocket closed:", event.code, event.reason);
     };
 
     ws.onerror = (error) => {
@@ -136,14 +516,19 @@ const useChatWebSocket = (
     };
 
     return () => {
-      ws.close();
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
   }, [user, token, setChatRooms]);
 
   const sendMessage = (
     roomId: number,
     content: string,
-    messageType: string = "text"
+    messageType: string = "text",
+    replyToMessageId?: number,
+    forwardedFrom?: number,
+    forwardedFromRoomId?: number
   ) => {
     if (socket && isConnected) {
       socket.send(
@@ -153,22 +538,49 @@ const useChatWebSocket = (
             chat_room_id: roomId,
             content,
             message_type: messageType,
+            ...(replyToMessageId && { reply_to_message_id: replyToMessageId }),
+            ...(forwardedFrom && {
+              forwarded_from: forwardedFrom,
+              forwarded_from_room_id: forwardedFromRoomId,
+            }),
           },
         })
       );
     }
   };
 
-  const joinRoom = (roomId: number) => {
+  const addReaction = (roomId: number, messageId: number, emoji: string) => {
+    if (!messageId) {
+      console.warn("Cannot add reaction: messageId is undefined");
+      return;
+    }
     if (socket && isConnected) {
       socket.send(
         JSON.stringify({
-          type: "join_room",
-          data: { room_id: roomId },
+          type: "reaction",
+          data: {
+            chat_room_id: roomId,
+            message_id: messageId,
+            emoji,
+          },
         })
       );
     }
   };
+
+  const joinRoom = useCallback(
+    (roomId: number) => {
+      if (socket && isConnected) {
+        socket.send(
+          JSON.stringify({
+            type: "join_room",
+            data: { room_id: roomId },
+          })
+        );
+      }
+    },
+    [socket, isConnected]
+  );
 
   const startTyping = (roomId: number) => {
     if (socket && isConnected) {
@@ -198,9 +610,11 @@ const useChatWebSocket = (
     onlineUsers,
     typingUsers,
     sendMessage,
+    addReaction,
     joinRoom,
     startTyping,
     stopTyping,
+    loadRoomMessages,
   };
 };
 
@@ -220,7 +634,13 @@ const chatAPI = {
         headers: { Authorization: `Bearer ${token}` },
       }
     );
-    return response.json();
+    const messages = await response.json();
+    messages.forEach((msg: any, index: number) => {
+      if (!msg.id) {
+        console.warn(`Message at index ${index} missing id:`, msg);
+      }
+    });
+    return messages.map(normalizeMessage);
   },
 
   async sendMessage(roomId: number, messageData: any, token: string) {
@@ -238,6 +658,34 @@ const chatAPI = {
         }),
       }
     );
+    if (!response.ok) {
+      throw new Error(`Failed to send message: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  async addReaction(messageId: number, emoji: string, token: string) {
+    if (!messageId) {
+      console.error("Cannot add reaction: messageId is undefined");
+      return;
+    }
+    const response = await fetch(
+      `http://localhost:8000/chat/messages/${messageId}/reactions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message_id: messageId,
+          emoji,
+        }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to add reaction: ${response.statusText}`);
+    }
     return response.json();
   },
 
@@ -269,10 +717,16 @@ const MessageBubble = ({
   message,
   isOwnMessage,
   user,
+  onReply,
+  onForward,
+  onReact,
 }: {
-  message: any;
+  message: Message;
   isOwnMessage: boolean;
   user: any;
+  onReply: (message: Message) => void;
+  onForward: (message: Message) => void;
+  onReact: (messageId: number, reaction: string) => void;
 }) => {
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], {
@@ -280,6 +734,14 @@ const MessageBubble = ({
       minute: "2-digit",
     });
   };
+
+  const reactionEmojis = ["👍", "❤️", "😂", "😢", "😮"];
+
+  useEffect(() => {
+    if (!message.id) {
+      console.warn("Message missing id:", message);
+    }
+  }, [message]);
 
   return (
     <div
@@ -289,7 +751,7 @@ const MessageBubble = ({
         {!isOwnMessage && (
           <div className="flex items-center gap-2 mb-1">
             <Avatar className="h-6 w-6">
-              <AvatarImage src={message.sender?.profile_pic} />
+              <AvatarImage src={message.sender?.profile_pic ?? undefined} />
               <AvatarFallback className="text-xs">
                 {message.sender?.full_name?.substring(0, 2)}
               </AvatarFallback>
@@ -306,7 +768,29 @@ const MessageBubble = ({
               : "bg-muted mr-4"
           }`}
         >
+          {message.reply_to_message && (
+            <div className="border-l-2 border-muted-foreground/50 pl-2 mb-2">
+              <p className="text-xs text-muted-foreground">
+                Replying to {message.reply_to_message.sender?.full_name}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {message.reply_to_message.content}
+              </p>
+            </div>
+          )}
           <p className="text-sm">{message.content}</p>
+          {message.reactions && message.reactions.length > 0 && (
+            <div className="flex gap-2 mt-1">
+              {message.reactions.map((reaction) => (
+                <span
+                  key={reaction.id}
+                  className="text-xs bg-muted/50 px-2 py-1 rounded-full"
+                >
+                  {reaction.emoji}
+                </span>
+              ))}
+            </div>
+          )}
           <div
             className={`flex items-center justify-between mt-1 ${
               isOwnMessage
@@ -320,6 +804,47 @@ const MessageBubble = ({
             )}
           </div>
         </div>
+        <div className="flex gap-2 mt-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onReply(message)}
+            title="Reply"
+          >
+            <Reply className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onForward(message)}
+            title="Forward"
+          >
+            <Forward className="h-4 w-4" />
+          </Button>
+          {message.id ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" title="React">
+                  <Heart className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {reactionEmojis.map((emoji) => (
+                  <DropdownMenuItem
+                    key={emoji}
+                    onClick={() => onReact(message.id, emoji)}
+                  >
+                    {emoji}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="ghost" size="sm" title="React" disabled>
+              <Heart className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -331,11 +856,13 @@ const ChatRoomList = ({
   selectedRoom,
   onRoomSelect,
   onlineUsers,
+  currentUser,
 }: {
-  rooms: any[];
-  selectedRoom: any;
-  onRoomSelect: (room: any) => void;
+  rooms: ChatRoom[];
+  selectedRoom: ChatRoom | null;
+  onRoomSelect: (room: ChatRoom) => void;
   onlineUsers: Set<number>;
+  currentUser: any;
 }) => {
   return (
     <ScrollArea className="h-full">
@@ -363,7 +890,7 @@ const ChatRoomList = ({
                 {room.room_type === "direct" &&
                   room.members?.some(
                     (member: any) =>
-                      member.user_id !== selectedRoom?.user_id &&
+                      member.user_id !== currentUser?.id &&
                       onlineUsers.has(member.user_id)
                   ) && (
                     <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-background" />
@@ -375,7 +902,7 @@ const ChatRoomList = ({
                     {room.name ||
                       `Chat with ${
                         room.members?.find(
-                          (m: any) => m.user_id !== selectedRoom?.user_id
+                          (m: any) => m.user_id !== currentUser?.id
                         )?.user?.full_name
                       }`}
                   </h4>
@@ -405,7 +932,7 @@ const CreateChatRoomDialog = ({
   onRoomCreated,
 }: {
   token: string;
-  onRoomCreated: (room: any) => void;
+  onRoomCreated: (room: ChatRoom) => void;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
@@ -425,11 +952,9 @@ const CreateChatRoomDialog = ({
       try {
         const users = await chatAPI.getAllUsers(token);
         if (Array.isArray(users)) {
-          // Filter users with role 'Mere' or 'Pere'
           const filteredUsers = users.filter(
             (user: User) => user.role === "Mère" || user.role === "Père"
           );
-          // Log users with missing fields for debugging
           filteredUsers.forEach((user, index) => {
             if (!user.full_name || !user.family_name || !user.email) {
               console.warn(`User at index ${index} has missing fields:`, user);
@@ -453,9 +978,15 @@ const CreateChatRoomDialog = ({
   const filteredUsers = searchQuery
     ? allUsers.filter(
         (user) =>
-          user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.family_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchQuery.toLowerCase())
+          (user.full_name
+            ? user.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+            : false) ||
+          (user.family_name
+            ? user.family_name.toLowerCase().includes(searchQuery.toLowerCase())
+            : false) ||
+          (user.email
+            ? user.email.toLowerCase().includes(searchQuery.toLowerCase())
+            : false)
       )
     : allUsers;
 
@@ -500,10 +1031,6 @@ const CreateChatRoomDialog = ({
       const newRoom = await chatAPI.createChatRoom(roomData, token);
       onRoomCreated(newRoom);
       setIsOpen(false);
-      setSelectedUsers([]);
-      setRoomName("");
-      setSearchQuery("");
-      setAllUsers([]);
     } catch (error) {
       setError("Failed to create chat room. Please try again.");
       console.error("Error creating chat room:", error);
@@ -511,6 +1038,7 @@ const CreateChatRoomDialog = ({
       setIsCreating(false);
     }
   };
+
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open) {
@@ -586,7 +1114,7 @@ const CreateChatRoomDialog = ({
                   </Avatar>
                   <div className="flex-1">
                     <p className="font-medium">
-                      {user.role == "Mère" ? "Mother" : "Father"}{" "}
+                      {user.role === "Mère" ? "Mother" : "Father"}{" "}
                       {user.full_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -609,28 +1137,111 @@ const CreateChatRoomDialog = ({
   );
 };
 
+// Forward Message Dialog Component
+const ForwardMessageDialog = ({
+  token,
+  message,
+  rooms,
+  onForward,
+  onClose,
+}: {
+  token: string;
+  message: Message;
+  rooms: ChatRoom[];
+  onForward: (roomId: number, message: Message) => void;
+  onClose: () => void;
+}) => {
+  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+
+  const handleForward = () => {
+    if (selectedRoomId) {
+      onForward(selectedRoomId, message);
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent aria-describedby="forward-dialog-description">
+        <DialogHeader>
+          <DialogTitle>Forward Message</DialogTitle>
+          <DialogDescription id="forward-dialog-description">
+            Select a chat room to forward the message to.
+          </DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="h-[200px] border rounded-md p-2">
+          {rooms.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center">
+              No chat rooms available
+            </p>
+          ) : (
+            rooms.map((room) => (
+              <div
+                key={room.id}
+                className={`p-2 cursor-pointer hover:bg-muted/50 rounded-md ${
+                  selectedRoomId === room.id ? "bg-primary/10" : ""
+                }`}
+                onClick={() => setSelectedRoomId(room.id)}
+              >
+                <p className="font-medium">
+                  {room.name ||
+                    `Chat with ${
+                      room.members?.find(
+                        (m: any) => m.user_id !== message.sender_id
+                      )?.user?.full_name
+                    }`}
+                </p>
+              </div>
+            ))
+          )}
+        </ScrollArea>
+        <Button onClick={handleForward} disabled={!selectedRoomId}>
+          Forward
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // Chat Interface Component
 const ChatInterface = ({
   selectedRoom,
   messages,
   onSendMessage,
   currentUser,
+  token,
   typingUsers,
   onStartTyping,
   onStopTyping,
+  chatRooms,
+  messagesLoading,
+  messagesError,
 }: {
-  selectedRoom: any;
-  messages: { [key: number]: any[] };
-  onSendMessage: (roomId: number, content: string) => void;
+  selectedRoom: ChatRoom;
+  messages: { [key: number]: Message[] };
+  onSendMessage: (
+    roomId: number,
+    content: string,
+    replyToMessageId?: number,
+    forwardedFrom?: number,
+    forwardedFromRoomId?: number
+  ) => void;
   currentUser: any;
+  token: string;
   typingUsers: { [key: number]: { [key: number]: boolean } };
   onStartTyping: (roomId: number) => void;
   onStopTyping: (roomId: number) => void;
+  chatRooms: ChatRoom[];
+  messagesLoading?: { [key: number]: boolean };
+  messagesError?: { [key: number]: string | null };
 }) => {
   const [messageInput, setMessageInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
+  const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  console.log(currentUser);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -657,8 +1268,16 @@ const ChatInterface = ({
 
   const handleSendMessage = () => {
     if (messageInput.trim()) {
-      onSendMessage(selectedRoom.id, messageInput.trim());
+      onSendMessage(
+        selectedRoom.id,
+        messageInput.trim(),
+        replyToMessage?.id,
+        forwardMessage?.id,
+        forwardMessage?.chat_room_id
+      );
       setMessageInput("");
+      setReplyToMessage(null);
+      setForwardMessage(null);
       if (isTyping) {
         setIsTyping(false);
         onStopTyping(selectedRoom.id);
@@ -673,6 +1292,67 @@ const ChatInterface = ({
     }
   };
 
+  const handleReply = (message: Message) => {
+    if (!message.id) {
+      console.warn("Cannot reply to message without id:", message);
+      return;
+    }
+    setReplyToMessage(message);
+    setForwardMessage(null);
+  };
+
+  const handleForward = (message: Message) => {
+    if (!message.id) {
+      console.warn("Cannot forward message without id:", message);
+      return;
+    }
+    setForwardMessage(message);
+    setReplyToMessage(null);
+  };
+
+  const handleReact = async (messageId: number, emoji: string) => {
+    if (!messageId) {
+      console.error("Cannot add reaction: messageId is undefined");
+      return;
+    }
+
+    if (!token) {
+      console.error("Cannot add reaction: user token is missing");
+      return;
+    }
+
+    console.log("Handling reaction:", {
+      messageId,
+      emoji,
+      userId: currentUser?.id,
+      tokenPresent: !!token,
+    });
+
+    try {
+      // Call API for persistence
+      await chatAPI.addReaction(messageId, emoji, token);
+      console.log("Reaction added successfully via API");
+      // WebSocket will handle real-time updates via the reaction_added event
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.message.includes("Authentication failed")) {
+          // Token might be expired, could trigger a re-login flow here
+          console.error("Authentication error - user may need to log in again");
+        } else if (error.message.includes("permission")) {
+          console.error(
+            "Permission error - user doesn't have reaction permissions"
+          );
+        }
+      }
+
+      // You could show a toast notification here
+      // toast.error(error.message || "Failed to add reaction");
+    }
+  };
+
   const roomMessages = messages[selectedRoom?.id] || [];
   const roomTypingUsers = typingUsers[selectedRoom?.id] || {};
   const typingUsersList = Object.entries(roomTypingUsers)
@@ -683,6 +1363,23 @@ const ChatInterface = ({
 
   return (
     <div className="flex flex-col h-full">
+      {forwardMessage && (
+        <ForwardMessageDialog
+          token={token}
+          message={forwardMessage}
+          rooms={chatRooms}
+          onForward={(roomId, msg) =>
+            onSendMessage(
+              roomId,
+              msg.content,
+              undefined,
+              msg.id,
+              msg.chat_room_id
+            )
+          }
+          onClose={() => setForwardMessage(null)}
+        />
+      )}
       <div className="p-4 border-b bg-card">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -723,14 +1420,48 @@ const ChatInterface = ({
       </div>
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-1">
-          {roomMessages.map((message, index) => (
-            <MessageBubble
-              key={message.id || index}
-              message={message}
-              isOwnMessage={message.sender_id === currentUser?.id}
-              user={currentUser}
-            />
-          ))}
+          {messagesLoading?.[selectedRoom?.id] ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm text-muted-foreground">
+                  Loading messages...
+                </span>
+              </div>
+            </div>
+          ) : messagesError?.[selectedRoom?.id] ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="text-center">
+                <p className="text-sm text-destructive mb-2">
+                  Failed to load messages
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {messagesError[selectedRoom.id]}
+                </p>
+              </div>
+            </div>
+          ) : roomMessages.length === 0 ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">No messages yet</p>
+                <p className="text-xs text-muted-foreground">
+                  Start the conversation!
+                </p>
+              </div>
+            </div>
+          ) : (
+            roomMessages.map((message, index) => (
+              <MessageBubble
+                key={message.id || index}
+                message={message}
+                isOwnMessage={message.sender_id === currentUser?.id}
+                user={currentUser}
+                onReply={handleReply}
+                onForward={handleForward}
+                onReact={handleReact}
+              />
+            ))
+          )}
           {typingUsersList.length > 0 && (
             <div className="flex items-center gap-2 p-2">
               <div className="flex space-x-1">
@@ -747,6 +1478,23 @@ const ChatInterface = ({
         </div>
       </ScrollArea>
       <div className="p-4 border-t bg-card">
+        {replyToMessage && (
+          <div className="flex items-center justify-between bg-muted/20 p-2 mb-2 rounded">
+            <div>
+              <p className="text-xs text-muted-foreground">
+                Replying to {replyToMessage.sender?.full_name}
+              </p>
+              <p className="text-sm truncate">{replyToMessage.content}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setReplyToMessage(null)}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <Button variant="ghost" size="sm">
             <Paperclip className="h-4 w-4" />
@@ -778,9 +1526,15 @@ const ChatInterface = ({
 // Main Communication Component
 const Communication = () => {
   const { user, token } = useAuth();
-  const [chatRooms, setChatRooms] = useState<any[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<any | null>(null);
+  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState<{
+    [key: number]: boolean;
+  }>({});
+  const [messagesError, setMessagesError] = useState<{
+    [key: number]: string | null;
+  }>({});
   const [view, setView] = useState<"overview" | "chat">("overview");
 
   const {
@@ -789,9 +1543,11 @@ const Communication = () => {
     onlineUsers,
     typingUsers,
     sendMessage,
+    addReaction,
     joinRoom,
     startTyping,
     stopTyping,
+    loadRoomMessages,
   } = useChatWebSocket(user, token, setChatRooms);
 
   useEffect(() => {
@@ -811,38 +1567,53 @@ const Communication = () => {
   }, [token]);
 
   useEffect(() => {
-    const loadMessages = async () => {
-      if (!selectedRoom || !token) return;
-      try {
-        const roomMessages = await chatAPI.getMessages(selectedRoom.id, token);
-      } catch (error) {
-        console.error("Error loading messages:", error);
-      }
-    };
     if (selectedRoom) {
-      loadMessages();
+      loadRoomMessages(selectedRoom.id, setMessagesLoading, setMessagesError);
       joinRoom(selectedRoom.id);
     }
-  }, [selectedRoom, token, joinRoom]);
+  }, [selectedRoom, loadRoomMessages, joinRoom]);
 
-  const handleRoomSelect = (room: any) => {
+  const handleRoomSelect = (room: ChatRoom) => {
     setSelectedRoom(room);
     setView("chat");
   };
 
-  const handleSendMessage = async (roomId: number, content: string) => {
+  const handleSendMessage = async (
+    roomId: number,
+    content: string,
+    replyToMessageId?: number,
+    forwardedFrom?: number,
+    forwardedFromRoomId?: number
+  ) => {
     try {
       await chatAPI.sendMessage(
         roomId,
-        { content, message_type: "text" },
+        {
+          chat_room_id: roomId,
+          content,
+          message_type: "text",
+          ...(replyToMessageId && { reply_to_message_id: replyToMessageId }),
+          ...(forwardedFrom && {
+            forwarded_from: forwardedFrom,
+            forwarded_from_room_id: forwardedFromRoomId,
+          }),
+        },
         token
+      );
+      sendMessage(
+        roomId,
+        content,
+        "text",
+        replyToMessageId,
+        forwardedFrom,
+        forwardedFromRoomId
       );
     } catch (error) {
       console.error("Error sending message:", error);
     }
   };
 
-  const handleRoomCreated = (newRoom: any) => {
+  const handleRoomCreated = (newRoom: ChatRoom) => {
     setChatRooms((prev) => [...prev, newRoom]);
     setSelectedRoom(newRoom);
     setView("chat");
@@ -879,9 +1650,13 @@ const Communication = () => {
             messages={messages}
             onSendMessage={handleSendMessage}
             currentUser={user}
+            token={token}
             typingUsers={typingUsers}
             onStartTyping={startTyping}
             onStopTyping={stopTyping}
+            chatRooms={chatRooms}
+            messagesLoading={messagesLoading}
+            messagesError={messagesError}
           />
         </div>
       </div>
@@ -1023,6 +1798,7 @@ const Communication = () => {
                 selectedRoom={selectedRoom}
                 onRoomSelect={handleRoomSelect}
                 onlineUsers={onlineUsers}
+                currentUser={user}
               />
             )}
           </CardContent>

@@ -319,7 +319,9 @@ export default function Delegation() {
     }
   };
 
-  const handleManageDelegate = async (delegate) => {
+  const handleManageDelegate = async (delegate: {
+    apiPermissions: string | string[];
+  }) => {
     setManagingDelegate(delegate);
 
     // Set permissions based on current delegate permissions
@@ -704,13 +706,13 @@ export default function Delegation() {
                     >
                       {delegate.status}
                     </Badge>
-                    <Button
+                    {/* <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleManageDelegate(delegate)}
                     >
                       Manage
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
               ))

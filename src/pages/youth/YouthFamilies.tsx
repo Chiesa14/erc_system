@@ -127,7 +127,9 @@ export default function YouthFamilies() {
                       <Users className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">{family.name}</h3>
+                      <h3 className="font-semibold text-lg">
+                        {family.name} Family
+                      </h3>
                       <p className="text-sm text-muted-foreground mb-2">
                         Led by {family.pere || family.mere || "Unknown Leader"}
                       </p>

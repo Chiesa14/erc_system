@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Users, Filter, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -21,13 +27,13 @@ export default function FamilyMembers() {
             Manage and track your family member information
           </p>
         </div>
-        <Button 
+        {/* <Button 
           onClick={() => setShowMemberForm(true)}
           className="bg-primary hover:bg-primary/90 gap-2"
         >
           <Plus className="h-4 w-4" />
           Add New Member
-        </Button>
+        </Button> */}
       </div>
 
       {/* Quick Stats */}
@@ -43,7 +49,7 @@ export default function FamilyMembers() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-accent/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -51,11 +57,13 @@ export default function FamilyMembers() {
                 <p className="text-sm text-muted-foreground">Adults</p>
                 <p className="text-2xl font-bold text-accent">3</p>
               </div>
-              <Badge variant="outline" className="text-accent border-accent/40">Adults</Badge>
+              <Badge variant="outline" className="text-accent border-accent/40">
+                Adults
+              </Badge>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-success/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -63,11 +71,16 @@ export default function FamilyMembers() {
                 <p className="text-sm text-muted-foreground">Youth</p>
                 <p className="text-2xl font-bold text-success">3</p>
               </div>
-              <Badge variant="outline" className="text-success border-success/40">Youth</Badge>
+              <Badge
+                variant="outline"
+                className="text-success border-success/40"
+              >
+                Youth
+              </Badge>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-warning/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -75,7 +88,12 @@ export default function FamilyMembers() {
                 <p className="text-sm text-muted-foreground">Children</p>
                 <p className="text-2xl font-bold text-warning">2</p>
               </div>
-              <Badge variant="outline" className="text-warning border-warning/40">Children</Badge>
+              <Badge
+                variant="outline"
+                className="text-warning border-warning/40"
+              >
+                Children
+              </Badge>
             </div>
           </CardContent>
         </Card>

@@ -36,6 +36,8 @@ import ChurchEndorsements from "./pages/church/ChurchEndorsements";
 import PrayerChain from "./pages/church/PrayerChain";
 import ChangePassword from "./pages/ChangePassword";
 import ActivationSuccess from "./pages/ActivationSuccess";
+import AccessCodeManagement from "./pages/admin/AccessCodeManagement";
+import AdminDocumentManagement from "./pages/admin/AdminDocumentManagemet";
 
 const queryClient = new QueryClient();
 
@@ -141,7 +143,7 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <AdminLayout>
-                    <div className="p-6">Access Codes (Coming Soon)</div>
+                    <AccessCodeManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               }
@@ -151,7 +153,7 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <AdminLayout>
-                    <div className="p-6">Reports (Coming Soon)</div>
+                    <AdminDocumentManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               }

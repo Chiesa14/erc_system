@@ -140,7 +140,9 @@ export function FamilyMembersTable() {
         email: formData.email || null,
         home_address: formData.home_address || null,
         date_of_birth: formData.date_of_birth || null,
-        gender: formData.gender ? formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1) : null, // Capitalize first letter
+        gender: formData.gender
+          ? formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1)
+          : null, // Capitalize first letter
         education_level: formData.education_level || null,
         employment_status: formData.employment_status || null,
         bcc_class_participation: formData.bcc_class_participation || null,
@@ -148,7 +150,8 @@ export function FamilyMembersTable() {
           ? parseInt(formData.year_of_graduation)
           : null,
         graduation_mode: formData.graduation_mode
-          ? formData.graduation_mode.charAt(0).toUpperCase() + formData.graduation_mode.slice(1)
+          ? formData.graduation_mode.charAt(0).toUpperCase() +
+            formData.graduation_mode.slice(1)
           : null, // Capitalize first letter
         parental_status:
           formData.parental_status === "true"
@@ -211,7 +214,9 @@ export function FamilyMembersTable() {
       employment_status: member.employment_status || "",
       bcc_class_participation: member.bcc_class_participation || false,
       year_of_graduation: member.year_of_graduation?.toString() || "",
-      graduation_mode: member.graduation_mode ? member.graduation_mode.toLowerCase() : "", // Convert to lowercase for form
+      graduation_mode: member.graduation_mode
+        ? member.graduation_mode.toLowerCase()
+        : "", // Convert to lowercase for form
       parental_status: member.parental_status?.toString() || "",
     });
     setIsDialogOpen(true);

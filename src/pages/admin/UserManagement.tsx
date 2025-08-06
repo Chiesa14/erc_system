@@ -543,8 +543,6 @@ export default function UserManagement() {
                     <SelectContent>
                       <SelectItem value="Père">Père</SelectItem>
                       <SelectItem value="Mère">Mère</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                   {formErrors.role && (

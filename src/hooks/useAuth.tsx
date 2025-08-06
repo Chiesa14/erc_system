@@ -12,10 +12,11 @@ interface AuthUser {
   family_name?: string;
   access_code?: string;
   family_id?: number;
-  profile_picture?: string;
-  bio?: string;
+  profile_pic?: string;
+  biography?: string;
   created_at?: string;
   updated_at?: string;
+  other?: string;
 }
 
 interface TokenResponse {
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         "/login",
         "/change-password",
         "/activation-success",
-      ]; // Add public routes here
+      ];
       const currentPath = window.location.pathname;
 
       if (storedToken) {
@@ -135,7 +136,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "You have been successfully signed in.",
       });
 
-      // Redirect based on role here:
       const redirectPath = roleRoutes[userData.role] || "/youth";
       navigate(redirectPath);
 
@@ -162,14 +162,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     navigate("/login");
   };
 
+  // Update user profile via POST request to /users/me
   const updateProfile = async (
     updates: Partial<AuthUser>
   ): Promise<{ error?: string }> => {
     if (!user || !token) return { error: "Not authenticated" };
 
     try {
-      // Placeholder for actual update API call here
-      setUser({ ...user, ...updates });
+      const response = await axios.put(
+        "http://localhost:8000/users/me",
+        updates,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const updatedUser = response.data;
+      setUser(updatedUser);
 
       toast({
         title: "Profile Updated",

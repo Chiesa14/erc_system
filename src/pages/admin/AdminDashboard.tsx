@@ -44,7 +44,6 @@ export default function AdminDashboard() {
 
   // Count total users (all time)
   const totalUsers = userData.length;
-  console.log("Total users:", userData);
 
   // Count new users this month and last month by created_at
   const newUsersThisMonth = userData.filter((u) => {

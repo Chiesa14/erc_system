@@ -26,7 +26,7 @@ const feedbackData = [
   {
     id: 1,
     family: "Joseph Family",
-    author: "Mary Johnson",
+    author: "Mary",
     subject: "Youth Camp Experience",
     content:
       "Our family had an amazing time at the youth camp. The activities were well-organized and our teens learned so much. Thank you for the excellent leadership!",
@@ -52,7 +52,7 @@ const feedbackData = [
     replies: [
       {
         id: 1,
-        author: "Sarah Johnson (Youth Leader)",
+        author: "Sarah (Youth Leader)",
         content:
           "Thank you for bringing this to our attention. We'll discuss this at our next planning meeting and get back to you with some options.",
         date: new Date(2024, 0, 11),
@@ -74,7 +74,7 @@ const feedbackData = [
     replies: [
       {
         id: 1,
-        author: "Sarah Johnson (Youth Leader)",
+        author: "Sarah (Youth Leader)",
         content:
           "We've organized a carpool group for community service events. I'll send you the contact information.",
         date: new Date(2024, 0, 9),

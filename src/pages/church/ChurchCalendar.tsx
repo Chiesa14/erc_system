@@ -48,12 +48,12 @@ const events = [
   },
   {
     id: 3,
-    title: "BCC Planning Session - Johnson Family",
+    title: "BCC Planning Session - John Family",
     date: new Date(2024, 0, 25), // January 25, 2024
     time: "6:30 PM",
-    family: "Johnson Family",
+    family: "John Family",
     type: "BCC",
-    location: "Johnson Home",
+    location: "Church Office",
     attendees: 5,
     status: "Scheduled",
     description: "Monthly BCC program planning and review session",
@@ -75,9 +75,9 @@ const events = [
     title: "Family Testimony Meeting",
     date: new Date(2024, 0, 28), // January 28, 2024
     time: "6:00 PM",
-    family: "Williams Family",
+    family: "John Family",
     type: "Spiritual",
-    location: "Williams Home",
+    location: "Church Office",
     attendees: 3,
     status: "Pending",
     description: "Family testimony sharing and spiritual discussion",

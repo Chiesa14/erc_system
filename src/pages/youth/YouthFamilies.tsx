@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Users, MessageSquare, Calendar, Star } from "lucide-react";
+import { Users, MessageSquare, Calendar, Star, Activity } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -115,6 +115,9 @@ export default function YouthFamilies() {
             lastActivity &&
             ["Ongoing", "Planned"].includes(lastActivity.status);
 
+          if (family.activities.length === 0) {
+            return null;
+          }
           return (
             <Card
               key={family.id}
@@ -128,7 +131,7 @@ export default function YouthFamilies() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">
-                        {family.name} Family
+                        {family.name} Family - {family.category}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-2">
                         Led by {family.pere || family.mere || "Unknown Leader"}

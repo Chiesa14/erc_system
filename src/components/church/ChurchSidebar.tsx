@@ -59,11 +59,11 @@ const navigationItems = [
     url: "/church/performance",
     icon: TrendingUp,
   },
-  {
-    title: "Endorsements",
-    url: "/church/endorsements",
-    icon: Award,
-  },
+  // {
+  //   title: "Endorsements",
+  //   url: "/church/endorsements",
+  //   icon: Award,
+  // },
 ];
 
 export function ChurchSidebar() {
@@ -73,8 +73,10 @@ export function ChurchSidebar() {
   const isCollapsed = state === "collapsed";
 
   const isActive = (path: string) => currentPath === path;
-  const getNavClass = (url: string) => 
-    isActive(url) ? "bg-accent text-accent-foreground font-medium" : "hover:bg-accent/50";
+  const getNavClass = (url: string) =>
+    isActive(url)
+      ? "bg-accent text-accent-foreground font-medium"
+      : "hover:bg-accent/50";
 
   return (
     <Sidebar className={isCollapsed ? "w-14" : "w-60"} collapsible="icon">
@@ -82,7 +84,9 @@ export function ChurchSidebar() {
         <div className="p-4 border-b">
           <div className="flex items-center gap-2">
             <Church className="h-6 w-6 text-primary" />
-            {!isCollapsed && <span className="font-semibold">Youth Ministry</span>}
+            {!isCollapsed && (
+              <span className="font-semibold">Youth Ministry</span>
+            )}
           </div>
         </div>
 
@@ -93,7 +97,11 @@ export function ChurchSidebar() {
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavClass(item.url)}>
+                    <NavLink
+                      to={item.url}
+                      end
+                      className={getNavClass(item.url)}
+                    >
                       <item.icon className="h-4 w-4" />
                       {!isCollapsed && <span>{item.title}</span>}
                     </NavLink>

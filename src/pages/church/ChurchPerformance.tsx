@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -9,6 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   TrendingUp,
   TrendingDown,
@@ -16,98 +29,216 @@ import {
   Award,
   Target,
   BarChart3,
-  PieChart,
   Calendar,
   CheckCircle,
   AlertTriangle,
   Download,
+  Filter,
+  RefreshCw,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import axios from "axios";
 
-const performanceData = {
-  overall: {
-    participationRate: 87,
-    programCompletion: 92,
-    familyEngagement: 85,
-    youthRetention: 94,
-    trend: "up",
-  },
-  familyMetrics: [
-    {
-      family: "Joseph Family",
-      participation: 95,
-      completion: 98,
-      engagement: 92,
-      activitiesCompleted: 45,
-      hoursLogged: 156,
-      trend: "up",
-      lastActive: "2024-01-20",
-    },
-    {
-      family: "Peter Family",
-      participation: 88,
-      completion: 90,
-      engagement: 85,
-      activitiesCompleted: 38,
-      hoursLogged: 142,
-      trend: "stable",
-      lastActive: "2024-01-18",
-    },
-    {
-      family: "Abraham Family",
-      participation: 75,
-      completion: 82,
-      engagement: 78,
-      activitiesCompleted: 28,
-      hoursLogged: 98,
-      trend: "down",
-      lastActive: "2024-01-15",
-    },
-    {
-      family: "David Family",
-      participation: 92,
-      completion: 95,
-      engagement: 88,
-      activitiesCompleted: 42,
-      hoursLogged: 134,
-      trend: "up",
-      lastActive: "2024-01-19",
-    },
-  ],
-  programStats: {
-    bccProgram: {
-      enrollment: 85,
-      completion: 78,
-      averageScore: 88,
-      trend: "up",
-    },
-    fheProgram: {
-      enrollment: 92,
-      completion: 89,
-      averageScore: 91,
-      trend: "up",
-    },
-    serviceProjects: {
-      enrollment: 76,
-      completion: 94,
-      averageScore: 93,
-      trend: "stable",
-    },
-    youthActivities: {
-      enrollment: 98,
-      completion: 87,
-      averageScore: 85,
-      trend: "down",
-    },
-  },
-};
+// TypeScript interfaces for the analytics data
+interface OverallMetrics {
+  participation_rate: number;
+  program_completion: number;
+  family_engagement: number;
+  youth_retention: number;
+  trend: "up" | "down" | "stable";
+}
+
+interface FamilyMetric {
+  family_id: number;
+  family_name: string;
+  participation: number;
+  completion: number;
+  engagement: number;
+  activities_completed: number;
+  hours_logged: number;
+  trend: "up" | "down" | "stable";
+  last_active: string;
+  performance_level: "excellent" | "good" | "needs_improvement";
+}
+
+interface PerformanceInsight {
+  type: "strength" | "improvement" | "recommendation";
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+  affected_families?: string[];
+}
+
+interface PerformanceInsights {
+  strengths: PerformanceInsight[];
+  improvements: PerformanceInsight[];
+  recommendations: PerformanceInsight[];
+}
+
+interface AnalyticsData {
+  overall: OverallMetrics;
+  family_metrics: FamilyMetric[];
+}
 
 export default function ChurchPerformance() {
+  const { toast } = useToast();
+  const { token } = useAuth();
+
+  // State management
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(
+    null
+  );
+  const [insights, setInsights] = useState<PerformanceInsights | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+
+  // Filter states
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+
+  // Set default date range (last 90 days)
+  useEffect(() => {
+    const today = new Date();
+    const ninetyDaysAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+    setEndDate(today.toISOString().split("T")[0]);
+    setStartDate(ninetyDaysAgo.toISOString().split("T")[0]);
+  }, []);
+
+  // Fetch analytics data
+  const fetchAnalytics = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      setLoading(true);
+
+      const params = new URLSearchParams();
+      if (startDate) params.append("start_date", startDate);
+      if (endDate) params.append("end_date", endDate);
+
+      const response = await axios.get(
+        `http://127.0.0.1:8000/analytics/performance?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setAnalyticsData(response.data);
+    } catch (error: any) {
+      console.error("Error fetching analytics:", error);
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.detail || "Failed to fetch analytics data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [token, startDate, endDate, toast]);
+
+  // Fetch performance insights
+  const fetchInsights = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      setInsightsLoading(true);
+
+      const params = new URLSearchParams();
+      if (startDate) params.append("start_date", startDate);
+      if (endDate) params.append("end_date", endDate);
+
+      const response = await axios.get(
+        `http://127.0.0.1:8000/analytics/insights?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setInsights(response.data);
+    } catch (error: any) {
+      console.error("Error fetching insights:", error);
+      // Don't show error toast for insights as it might not be available for non-admin users
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, [token, startDate, endDate]);
+
+  // Export analytics data
+  const handleExport = async () => {
+    if (!token) return;
+
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append("start_date", startDate);
+      if (endDate) params.append("end_date", endDate);
+      params.append("format", "json");
+
+      const response = await axios.get(
+        `http://127.0.0.1:8000/analytics/export?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Create and download file
+      const dataStr = JSON.stringify(response.data, null, 2);
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `church-analytics-${
+        new Date().toISOString().split("T")[0]
+      }.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Successful",
+        description: "Analytics data has been downloaded",
+      });
+    } catch (error: any) {
+      console.error("Error exporting data:", error);
+      toast({
+        title: "Export Failed",
+        description:
+          error.response?.data?.detail || "Failed to export analytics data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Apply filters
+  const handleApplyFilters = () => {
+    setIsFilterDialogOpen(false);
+    fetchAnalytics();
+    fetchInsights();
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    if (token && startDate && endDate) {
+      fetchAnalytics();
+      fetchInsights();
+    }
+  }, [fetchAnalytics, fetchInsights, token, startDate, endDate]);
+
+  // Helper functions
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case "up":
-        return <TrendingUp className="h-4 w-4 text-success" />;
+        return <TrendingUp className="h-4 w-4 text-green-600" />;
       case "down":
-        return <TrendingDown className="h-4 w-4 text-destructive" />;
+        return <TrendingDown className="h-4 w-4 text-red-600" />;
       default:
         return <div className="h-4 w-4" />;
     }
@@ -116,27 +247,53 @@ export default function ChurchPerformance() {
   const getTrendColor = (trend: string) => {
     switch (trend) {
       case "up":
-        return "text-success";
+        return "text-green-600";
       case "down":
-        return "text-destructive";
+        return "text-red-600";
       default:
         return "text-muted-foreground";
     }
   };
 
   const getPerformanceColor = (score: number) => {
-    if (score >= 90) return "text-success";
-    if (score >= 75) return "text-warning";
-    return "text-destructive";
+    if (score >= 90) return "text-green-600";
+    if (score >= 75) return "text-yellow-600";
+    return "text-red-600";
   };
 
-  const getPerformanceBadgeColor = (score: number) => {
-    if (score >= 90)
-      return "bg-success/20 text-success-foreground border-success/40";
-    if (score >= 75)
-      return "bg-warning/20 text-warning-foreground border-warning/40";
-    return "bg-destructive/20 text-destructive-foreground border-destructive/40";
+  const getPerformanceLevelBadge = (level: string) => {
+    switch (level) {
+      case "excellent":
+        return "bg-green-100 text-green-800 border-green-300";
+      case "good":
+        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+      default:
+        return "bg-red-100 text-red-800 border-red-300";
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-6 w-6 animate-spin" />
+            <p className="text-muted-foreground">Loading analytics data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!analyticsData) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">No analytics data available</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 bg-gradient-to-br from-background via-background to-muted/20">
@@ -149,11 +306,87 @@ export default function ChurchPerformance() {
           <p className="text-muted-foreground">
             Comprehensive performance tracking and family engagement metrics
           </p>
+          {startDate && endDate && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Period: {new Date(startDate).toLocaleDateString()} -{" "}
+              {new Date(endDate).toLocaleDateString()}
+            </p>
+          )}
         </div>
-        <Button className="bg-primary hover:bg-primary/90 gap-2">
-          <Download className="h-4 w-4" />
-          Export Report
-        </Button>
+
+        <div className="flex gap-2">
+          <Dialog
+            open={isFilterDialogOpen}
+            onOpenChange={setIsFilterDialogOpen}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Filters
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Analytics Filters</DialogTitle>
+                <DialogDescription>
+                  Adjust the date range for analytics data
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="start-date">Start Date</Label>
+                  <Input
+                    id="start-date"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="end-date">End Date</Label>
+                  <Input
+                    id="end-date"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsFilterDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleApplyFilters}>Apply Filters</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Button
+            onClick={handleExport}
+            className="bg-primary hover:bg-primary/90 gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export Report
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => {
+              fetchAnalytics();
+              fetchInsights();
+            }}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Overall Performance Cards */}
@@ -167,9 +400,9 @@ export default function ChurchPerformance() {
                 </p>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-bold text-primary">
-                    {performanceData.overall.participationRate}%
+                    {analyticsData.overall.participation_rate}%
                   </p>
-                  {getTrendIcon(performanceData.overall.trend)}
+                  {getTrendIcon(analyticsData.overall.trend)}
                 </div>
               </div>
               <Users className="h-8 w-8 text-primary/60" />
@@ -177,7 +410,7 @@ export default function ChurchPerformance() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-success/5">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-green-50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -185,18 +418,18 @@ export default function ChurchPerformance() {
                   Program Completion
                 </p>
                 <div className="flex items-center gap-2">
-                  <p className="text-2xl font-bold text-success">
-                    {performanceData.overall.programCompletion}%
+                  <p className="text-2xl font-bold text-green-600">
+                    {analyticsData.overall.program_completion}%
                   </p>
                   {getTrendIcon("up")}
                 </div>
               </div>
-              <CheckCircle className="h-8 w-8 text-success/60" />
+              <CheckCircle className="h-8 w-8 text-green-600/60" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-accent/5">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-blue-50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -204,30 +437,30 @@ export default function ChurchPerformance() {
                   Family Engagement
                 </p>
                 <div className="flex items-center gap-2">
-                  <p className="text-2xl font-bold text-accent">
-                    {performanceData.overall.familyEngagement}%
+                  <p className="text-2xl font-bold text-blue-600">
+                    {analyticsData.overall.family_engagement}%
                   </p>
                   {getTrendIcon("up")}
                 </div>
               </div>
-              <Award className="h-8 w-8 text-accent/60" />
+              <Award className="h-8 w-8 text-blue-600/60" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-warning/5">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-orange-50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Youth Retention</p>
                 <div className="flex items-center gap-2">
-                  <p className="text-2xl font-bold text-warning">
-                    {performanceData.overall.youthRetention}%
+                  <p className="text-2xl font-bold text-orange-600">
+                    {analyticsData.overall.youth_retention}%
                   </p>
                   {getTrendIcon("up")}
                 </div>
               </div>
-              <Target className="h-8 w-8 text-warning/60" />
+              <Target className="h-8 w-8 text-orange-600/60" />
             </div>
           </CardContent>
         </Card>
@@ -236,7 +469,7 @@ export default function ChurchPerformance() {
       <Tabs defaultValue="families" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="families">Family Performance</TabsTrigger>
-          <TabsTrigger value="programs">Program Analytics</TabsTrigger>
+          <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent value="families" className="space-y-6">
@@ -248,31 +481,32 @@ export default function ChurchPerformance() {
                 Individual Family Performance
               </CardTitle>
               <CardDescription>
-                Detailed metrics for each participating family
+                Detailed metrics for each participating family (
+                {analyticsData.family_metrics.length} families)
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
-                {performanceData.familyMetrics.map((family, index) => (
+                {analyticsData.family_metrics.map((family, index) => (
                   <Card
-                    key={index}
+                    key={family.family_id}
                     className="bg-gradient-to-br from-card to-muted/5"
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <h3 className="font-semibold text-lg">
-                            {family.family}
+                            {family.family_name} Family
                           </h3>
                           <Badge
                             variant="outline"
-                            className={getPerformanceBadgeColor(
-                              family.participation
+                            className={getPerformanceLevelBadge(
+                              family.performance_level
                             )}
                           >
-                            {family.participation >= 90
+                            {family.performance_level === "excellent"
                               ? "Excellent"
-                              : family.participation >= 75
+                              : family.performance_level === "good"
                               ? "Good"
                               : "Needs Improvement"}
                           </Badge>
@@ -286,7 +520,8 @@ export default function ChurchPerformance() {
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Last active: {family.lastActive}
+                          Last active:{" "}
+                          {new Date(family.last_active).toLocaleDateString()}
                         </p>
                       </div>
 
@@ -345,15 +580,15 @@ export default function ChurchPerformance() {
                         <div className="grid grid-cols-2 gap-4 text-center">
                           <div className="p-3 bg-primary/10 rounded-lg">
                             <p className="text-xl font-bold text-primary">
-                              {family.activitiesCompleted}
+                              {family.activities_completed}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Activities
                             </p>
                           </div>
-                          <div className="p-3 bg-accent/10 rounded-lg">
-                            <p className="text-xl font-bold text-accent">
-                              {family.hoursLogged}
+                          <div className="p-3 bg-blue-100 rounded-lg">
+                            <p className="text-xl font-bold text-blue-600">
+                              {Math.round(family.hours_logged)}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Hours
@@ -375,148 +610,103 @@ export default function ChurchPerformance() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="programs" className="space-y-6">
-          {/* Program Performance */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {Object.entries(performanceData.programStats).map(
-              ([program, stats]) => (
-                <Card key={program} className="border-0 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 capitalize">
-                      <PieChart className="h-5 w-5 text-primary" />
-                      {program.replace(/([A-Z])/g, " $1").trim()}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Enrollment Rate</span>
-                          <div className="flex items-center gap-1">
-                            <span
-                              className={getPerformanceColor(stats.enrollment)}
-                            >
-                              {stats.enrollment}%
-                            </span>
-                            {getTrendIcon(stats.trend)}
-                          </div>
-                        </div>
-                        <Progress value={stats.enrollment} className="h-2" />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Completion Rate</span>
-                          <span
-                            className={getPerformanceColor(stats.completion)}
-                          >
-                            {stats.completion}%
-                          </span>
-                        </div>
-                        <Progress value={stats.completion} className="h-2" />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Average Score</span>
-                          <span
-                            className={getPerformanceColor(stats.averageScore)}
-                          >
-                            {stats.averageScore}%
-                          </span>
-                        </div>
-                        <Progress value={stats.averageScore} className="h-2" />
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t">
-                        <Badge
-                          variant="outline"
-                          className={getPerformanceBadgeColor(
-                            stats.averageScore
-                          )}
-                        >
-                          {stats.averageScore >= 90
-                            ? "Excellent"
-                            : stats.averageScore >= 75
-                            ? "Good"
-                            : "Needs Focus"}
-                        </Badge>
-                        <Button size="sm" variant="outline">
-                          View Report
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            )}
-          </div>
-
+        <TabsContent value="insights" className="space-y-6">
           {/* Performance Insights */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-warning" />
-                Performance Insights & Recommendations
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
-                  <h4 className="font-medium text-success mb-2">
-                    Strong Performance Areas
-                  </h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>
-                      • Family Home Evening program shows consistent 91%
-                      participation
-                    </li>
-                    <li>
-                      • Service projects have highest completion rates at 94%
-                    </li>
-                    <li>• Youth retention remains strong at 94%</li>
-                  </ul>
-                </div>
-
-                <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
-                  <h4 className="font-medium text-warning mb-2">
-                    Areas for Improvement
-                  </h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>
-                      • Youth Activities showing declining trend - consider
-                      program refresh
-                    </li>
-                    <li>
-                      • Abraham Family engagement dropping - recommend personal
-                      outreach
-                    </li>
-                    <li>
-                      • BCC completion could improve with additional support
-                      resources
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                  <h4 className="font-medium text-primary mb-2">
-                    Recommended Actions
-                  </h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>
-                      • Schedule one-on-one meetings with low-engagement
-                      families
-                    </li>
-                    <li>
-                      • Introduce new youth activity formats based on feedback
-                    </li>
-                    <li>
-                      • Implement BCC mentorship program for struggling
-                      participants
-                    </li>
-                  </ul>
-                </div>
+          {insightsLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <p className="text-muted-foreground">Loading insights...</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          ) : insights ? (
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                  Performance Insights & Recommendations
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4">
+                  {insights.strengths.length > 0 && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="font-medium text-green-800 mb-2">
+                        Strong Performance Areas
+                      </h4>
+                      <ul className="text-sm text-green-700 space-y-1">
+                        {insights.strengths.map((strength, index) => (
+                          <li key={index}>• {strength.description}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {insights.improvements.length > 0 && (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <h4 className="font-medium text-yellow-800 mb-2">
+                        Areas for Improvement
+                      </h4>
+                      <ul className="text-sm text-yellow-700 space-y-1">
+                        {insights.improvements.map((improvement, index) => (
+                          <li key={index}>
+                            • {improvement.description}
+                            {improvement.affected_families &&
+                              improvement.affected_families.length > 0 && (
+                                <span className="text-xs ml-2">
+                                  (Affects:{" "}
+                                  {improvement.affected_families
+                                    .map((family) => `${family} Family`)
+                                    .join(", ")}
+                                  )
+                                </span>
+                              )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {insights.recommendations.length > 0 && (
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h4 className="font-medium text-blue-800 mb-2">
+                        Recommended Actions
+                      </h4>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        {insights.recommendations.map(
+                          (recommendation, index) => (
+                            <li key={index}>• {recommendation.description}</li>
+                          )
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {insights.strengths.length === 0 &&
+                    insights.improvements.length === 0 &&
+                    insights.recommendations.length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">
+                          No insights available for the selected period.
+                        </p>
+                      </div>
+                    )}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-0 shadow-lg">
+              <CardContent className="p-8 text-center">
+                <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  Insights Not Available
+                </h3>
+                <p className="text-muted-foreground">
+                  Performance insights are only available for administrators.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

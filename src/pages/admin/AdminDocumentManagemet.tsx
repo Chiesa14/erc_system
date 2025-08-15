@@ -809,7 +809,7 @@ export default function AdminDocumentManagement() {
                                     {doc.original_filename}
                                   </p>
                                   <p className="text-sm text-muted-foreground">
-                                    ID: {doc.id}
+                                    Type: {doc.type}
                                   </p>
                                 </div>
                               </div>

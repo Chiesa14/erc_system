@@ -638,7 +638,7 @@ export default function UserManagement() {
               </div>
             ) : (
               <>
-                <ScrollArea className="h-[400px]">
+                <ScrollArea className="h-[420px]">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader className="sticky top-0 bg-background z-10">

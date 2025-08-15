@@ -16,7 +16,7 @@ import {
   MessageSquare,
   Megaphone,
   FileText,
-  Users
+  Users,
 } from "lucide-react";
 
 const navigationItems = [
@@ -26,6 +26,11 @@ const navigationItems = [
   { title: "Feedback", url: "/youth/feedback", icon: MessageSquare },
   { title: "Documents", url: "/youth/documents", icon: FileText },
   { title: "Family Groups", url: "/youth/families", icon: Users },
+  {
+    title: "Recommendations",
+    url: "/youth/recommendations",
+    icon: MessageSquare,
+  },
 ];
 
 export function YouthSidebar() {
@@ -42,7 +47,8 @@ export function YouthSidebar() {
   };
 
   const getNavClasses = (path: string) => {
-    const baseClasses = "w-full justify-start transition-all duration-200 rounded-xl font-medium";
+    const baseClasses =
+      "w-full justify-start transition-all duration-200 rounded-xl font-medium";
     if (isActive(path)) {
       return `${baseClasses} bg-primary text-primary-foreground shadow-sm`;
     }
@@ -50,8 +56,8 @@ export function YouthSidebar() {
   };
 
   return (
-    <Sidebar 
-      className={`transition-all duration-300 ${collapsed ? "w-16" : "w-64"}`} 
+    <Sidebar
+      className={`transition-all duration-300 ${collapsed ? "w-16" : "w-64"}`}
       collapsible="icon"
       side="left"
     >
@@ -63,22 +69,28 @@ export function YouthSidebar() {
             </div>
             {!collapsed && (
               <div className="min-w-0">
-                <h2 className="font-bold text-card-foreground truncate">YouthTrack</h2>
-                <p className="text-xs text-muted-foreground">Your faith journey 🙏</p>
+                <h2 className="font-bold text-card-foreground truncate">
+                  YouthTrack
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Your faith journey 🙏
+                </p>
               </div>
             )}
           </div>
         </div>
 
         <SidebarGroup className="px-3 py-4">
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+            Navigation
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild className="h-10">
-                    <NavLink 
-                      to={item.url} 
+                    <NavLink
+                      to={item.url}
                       className={getNavClasses(item.url)}
                       title={collapsed ? item.title : undefined}
                     >

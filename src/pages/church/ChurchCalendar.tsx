@@ -33,6 +33,7 @@ import {
 interface FamilyActivity {
   id: number;
   family_id: number;
+  family_name: string;
   date: string;
   status: "Planned" | "Ongoing" | "Completed" | "Cancelled";
   category: "Spiritual" | "Social";
@@ -384,6 +385,7 @@ export default function ChurchCalendar() {
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
+              numberOfMonths={2}
               modifiers={modifiers}
               modifiersStyles={modifiersStyles}
               className="rounded-md border max-w-full [&_table]:w-full [&_td]:text-center [&_th]:text-center [&_.rdp-cell]:p-2 [&_.rdp-day]:w-full [&_.rdp-day]:h-10 [&_.rdp-day]:text-sm [&_.rdp-months]:flex [&_.rdp-months]:gap-20 [&_.rdp-months]:justify-center [&_.rdp-month]:flex-shrink-0 pointer-events-auto"
@@ -499,7 +501,7 @@ export default function ChurchCalendar() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <Users className="h-4 w-4" />
-                                <span>Family ID: {activity.family_id}</span>
+                                <span>{activity.family_name} family</span>
                               </div>
                             </div>
 

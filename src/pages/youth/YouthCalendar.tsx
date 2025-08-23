@@ -36,6 +36,7 @@ import {
 interface FamilyActivity {
   id: number;
   family_id: number;
+  family_name: string;
   date: string; // ISO date string
   status: "Planned" | "Ongoing" | "Completed" | "Cancelled";
   category: "Spiritual" | "Social";
@@ -607,9 +608,7 @@ export default function FamilyActivitiesCalendar() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4" />
-                          <span>
-                            {user.family_name} Family - {user.family_category}
-                          </span>
+                          <span>My Family - {activity.family_name} family</span>
                         </div>
                       </div>
 

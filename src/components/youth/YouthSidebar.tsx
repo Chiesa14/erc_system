@@ -26,11 +26,6 @@ const navigationItems = [
   { title: "Feedback", url: "/youth/feedback", icon: MessageSquare },
   { title: "Documents", url: "/youth/documents", icon: FileText },
   { title: "Family Groups", url: "/youth/families", icon: Users },
-  {
-    title: "Recommendations",
-    url: "/youth/recommendations",
-    icon: MessageSquare,
-  },
 ];
 
 export function YouthSidebar() {

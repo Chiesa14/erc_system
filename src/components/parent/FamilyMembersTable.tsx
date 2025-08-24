@@ -44,6 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MoreHorizontal, Plus, Edit, Trash2, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 // Define the FamilyMember interface to match the backend's FamilyMemberOut schema
 interface FamilyMember {
@@ -89,7 +90,7 @@ export function FamilyMembersTable() {
   });
 
   // Base API URL
-  const API_BASE_URL = "http://localhost:8000/family/family-members";
+  const API_BASE_URL = buildApiUrl(API_ENDPOINTS.families.members);
 
   // Axios instance with default headers
   const axiosInstance = useMemo(

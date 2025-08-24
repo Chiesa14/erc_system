@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 // Define interfaces based on your backend schemas
 interface FamilyActivity {
@@ -112,7 +113,7 @@ export default function FamilyActivitiesCalendar() {
   const { toast } = useToast();
 
   // API base URL
-  const baseUrl = "http://localhost:8000/family/family-activities";
+  const baseUrl = buildApiUrl(API_ENDPOINTS.families.activities);
 
   // Fetch activities
   useEffect(() => {

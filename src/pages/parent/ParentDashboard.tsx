@@ -36,6 +36,7 @@ import {
   LineChart,
   Line,
 } from "recharts";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 // Interface for the FamilyStats response
 interface AgeDistribution {
@@ -86,8 +87,8 @@ export default function ParentDashboard() {
 
       try {
         setLoading(true);
-        const response = await axios.get<FamilyStats>(
-          `http://localhost:8000/family/family-members/${user.family_id}/stats`,
+        const response = await axios.get(
+          `${buildApiUrl(API_ENDPOINTS.families.stats)}/${user.family_id}/stats`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

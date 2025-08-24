@@ -45,6 +45,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 // Helper function to format dates
 const formatDate = (dateString) => {
@@ -163,7 +164,8 @@ const ChurchRecommendations = () => {
   const [recommendationsLimit] = useState(10);
   const [recommendationsOffset, setRecommendationsOffset] = useState(0);
 
-  const baseUrl = "http://localhost:8000/recommendations";
+  const baseUrl = buildApiUrl(API_ENDPOINTS.recommendations.base);
+  const feedbackBaseUrl = buildApiUrl(API_ENDPOINTS.feedback.base);
 
   // Feedback-related state
   const [isReplyOpen, setIsReplyOpen] = useState(false);
@@ -183,7 +185,6 @@ const ChurchRecommendations = () => {
     category: "praise",
     rating: null,
   });
-  const feedbackBaseUrl = "http://localhost:8000/feedback";
 
   const filteredFeedback = feedbackData.filter(
     (feedback) => filterStatus === "all" || feedback.status === filterStatus
@@ -197,7 +198,7 @@ const ChurchRecommendations = () => {
         setIsLoading(true);
         // Fetch families
         const familiesResponse = await axios.get(
-          "http://localhost:8000/families/",
+          buildApiUrl(API_ENDPOINTS.families.base),
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -1200,7 +1201,7 @@ const ChurchRecommendations = () => {
                                   key={family.id}
                                   value={family.id.toString()}
                                 >
-                                  {family.name} ({family.category})
+                                  {family.name} family- ({family.category})
                                 </SelectItem>
                               ))}
                             </SelectContent>

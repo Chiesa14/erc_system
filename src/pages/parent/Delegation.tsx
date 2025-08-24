@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 // Debounce utility function
 const debounce = (func, delay) => {
@@ -33,7 +34,7 @@ const debounce = (func, delay) => {
   };
 };
 
-const BASE_URL = "http://localhost:8000/family/family-members";
+const BASE_URL = buildApiUrl(API_ENDPOINTS.families.members);
 
 // API Helper Functions
 const createApi = (token) => ({

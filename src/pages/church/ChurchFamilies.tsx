@@ -27,6 +27,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 export default function ChurchFamilies() {
   const { user, token } = useAuth();
@@ -44,7 +45,7 @@ export default function ChurchFamilies() {
     const fetchFamilies = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("http://localhost:8000/families/", {
+        const response = await fetch(buildApiUrl(API_ENDPOINTS.families.base), {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -2,6 +2,13 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import {
+  API_ENDPOINTS,
+  AuthTokenManager,
+  apiGet,
+  apiPostForm,
+  buildApiUrl,
+} from "@/lib/api";
 
 interface AuthUser {
   id: string;
@@ -56,11 +63,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch user data from backend using the token
   const fetchUserData = async (authToken: string) => {
     try {
-      const response = await axios.get("http://localhost:8000/users/me", {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
+      const response = await apiGet<AuthUser>(API_ENDPOINTS.users.me);
 
-      const userData = response.data;
+      const userData = response as AuthUser;
       setUser(userData);
       return userData;
     } catch (error) {
@@ -112,21 +117,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
 
-      const formData = new URLSearchParams();
-      formData.append("username", username);
-      formData.append("password", password);
+      const formData = {
+        username,
+        password,
+      };
 
-      const response = await axios.post<TokenResponse>(
-        "http://localhost:8000/auth/token",
-        formData.toString(),
-        {
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        }
+      const response = await apiPostForm<TokenResponse>(
+        API_ENDPOINTS.auth.login,
+        formData
       );
 
-      const { access_token } = response.data;
+      const { access_token } = response;
 
-      localStorage.setItem("auth_token", access_token);
+      AuthTokenManager.setToken(access_token);
       setToken(access_token);
 
       const userData = await fetchUserData(access_token);
@@ -170,7 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const response = await axios.put(
-        "http://localhost:8000/users/me",
+        buildApiUrl(API_ENDPOINTS.users.me),
         updates,
         {
           headers: {

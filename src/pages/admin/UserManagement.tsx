@@ -680,7 +680,9 @@ export default function UserManagement() {
                                 {user.email}
                               </TableCell>
                               <TableCell className="hidden md:table-cell">
-                                {user.family_name || "N/A"}
+                                {user.family_name
+                                  ? `${user.family_name} family - (${user.family_category})`
+                                  : "N/A"}
                               </TableCell>
                               <TableCell>
                                 <Badge
@@ -704,7 +706,9 @@ export default function UserManagement() {
                                       : "outline"
                                   }
                                 >
-                                  {user.role}
+                                  {user.role != "Other"
+                                    ? user.role
+                                    : "Youth member"}
                                 </Badge>
                               </TableCell>
                               <TableCell>

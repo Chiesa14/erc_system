@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 // Define interface for document data based on SharedDocumentOut schema
 interface Document {
@@ -107,7 +108,7 @@ export default function YouthDocuments() {
   const { toast } = useToast();
 
   // API base URL
-  const baseUrl = "http://localhost:8000/shared-documents";
+  const baseUrl = buildApiUrl(API_ENDPOINTS.documents.shared);
 
   // Fetch documents when page or perPage changes
   useEffect(() => {

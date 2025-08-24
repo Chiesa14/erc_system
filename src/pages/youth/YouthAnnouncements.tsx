@@ -33,9 +33,10 @@ import {
   Search,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 // API configuration
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = buildApiUrl(API_ENDPOINTS.announcements.base);
 
 // Utility function to format dates
 const formatDate = (date) => {
@@ -344,7 +345,7 @@ export default function YouthAnnouncements() {
   const downloadFlyer = async (announcementId: any, title: any) => {
     try {
       const response = await axios.get(
-        `http://localhost:8000/announcements/${announcementId}/flyer`,
+        `${buildApiUrl(API_ENDPOINTS.announcements.flyer)}/${announcementId}/flyer`,
         {
           responseType: "blob",
         }

@@ -21,8 +21,9 @@ import {
 import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
-const BASE_URL = "http://localhost:8000/family/family-documents";
+const BASE_URL = buildApiUrl(API_ENDPOINTS.families.documents);
 
 interface Document {
   id: number;

@@ -16,6 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 interface UploadedFile {
   id: number;
@@ -26,7 +27,7 @@ interface UploadedFile {
   family_id: number;
 }
 
-const BASE_URL = "http://localhost:8000/family/family-documents";
+const BASE_URL = buildApiUrl(API_ENDPOINTS.families.documents);
 
 interface UploadSectionProps {
   onFilesUploaded: (newFiles: UploadedFile[]) => void;

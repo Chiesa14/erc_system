@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ChatRoom, Message } from "@/types/communication";
 import { normalizeMessage } from "@/utils/communication";
 import { chatAPI } from "@/api/communication";
+import { getWebSocketConfig } from "@/lib/api";
 
 // WebSocket Hook for Chat
 export const useChatWebSocket = (
@@ -92,9 +93,9 @@ export const useChatWebSocket = (
   useEffect(() => {
     if (!user || !token) return;
 
-    const wsUrl = `ws://localhost:8000/chat/ws?token=${encodeURIComponent(
-      token
-    )}`;
+    const wsUrl = `${
+      getWebSocketConfig().baseUrl
+    }/chat/ws?token=${encodeURIComponent(token)}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -116,7 +117,10 @@ export const useChatWebSocket = (
           case "message":
             // Check for both 'id' and 'message_id' fields
             if (!data.data?.id && !data.data?.message_id) {
-              console.warn("Received message without id or message_id:", data.data);
+              console.warn(
+                "Received message without id or message_id:",
+                data.data
+              );
               return;
             }
             setMessages((prev) => {
@@ -178,7 +182,7 @@ export const useChatWebSocket = (
 
           case "room_created":
           case "room_joined":
-            chatAPI.getChatRooms(token).then((rooms) => setChatRooms(rooms));
+            chatAPI.getChatRooms(token).then((rooms) => setChatRooms(rooms as ChatRoom[]));
             break;
 
           case "reaction_added":
@@ -220,7 +224,10 @@ export const useChatWebSocket = (
           case "message_forwarded":
             // Check for both 'id' and 'message_id' fields
             if (!data.data?.id && !data.data?.message_id) {
-              console.warn("Received forwarded message without id or message_id:", data.data);
+              console.warn(
+                "Received forwarded message without id or message_id:",
+                data.data
+              );
               return;
             }
             setMessages((prev) => {

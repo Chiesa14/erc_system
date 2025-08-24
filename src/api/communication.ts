@@ -1,96 +1,67 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { normalizeMessage } from "@/utils/communication";
+import { API_ENDPOINTS, apiGet, apiPost, buildApiUrl } from "@/lib/api";
+import { ChatRoom, Message } from "@/types/communication";
 
-// Chat API Functions
+// Chat API Functions - Updated to use centralized configuration
 export const chatAPI = {
-  async getChatRooms(token: string) {
-    const response = await fetch("http://localhost:8000/chat/rooms", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.json();
+  async getChatRooms(token: string): Promise<ChatRoom[]> {
+    const response = await apiGet<ChatRoom[]>(API_ENDPOINTS.chat.rooms);
+    return response;
   },
 
-  async getMessages(roomId: number, token: string, page: number = 1) {
-    const response = await fetch(
-      `http://localhost:8000/chat/rooms/${roomId}/messages?page=${page}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
+  async getMessages(roomId: number, token: string, page: number = 1): Promise<Message[]> {
+    const messages = await apiGet<Message[]>(
+      `${API_ENDPOINTS.chat.rooms}/${roomId}/messages`,
+      { page }
     );
-    const messages = await response.json();
-    messages.forEach((msg: any, index: number) => {
-      if (!msg.id) {
-        console.warn(`Message at index ${index} missing id:`, msg);
-      }
-    });
-    return messages.map(normalizeMessage);
-  },
 
-  async sendMessage(roomId: number, messageData: any, token: string) {
-    const response = await fetch(
-      `http://localhost:8000/chat/rooms/${roomId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          chat_room_id: roomId,
-          ...messageData,
-        }),
-      }
-    );
-    if (!response.ok) {
-      throw new Error(`Failed to send message: ${response.statusText}`);
+    if (Array.isArray(messages)) {
+      messages.forEach((msg: any, index: number) => {
+        if (!msg.id) {
+          console.warn(`Message at index ${index} missing id:`, msg);
+        }
+      });
+      return messages.map(normalizeMessage);
     }
-    return response.json();
+    
+    return [];
   },
 
-  async addReaction(messageId: number, emoji: string, token: string) {
+  async sendMessage(roomId: number, messageData: any, token: string): Promise<Message> {
+    const response = await apiPost<Message>(
+      `${API_ENDPOINTS.chat.rooms}/${roomId}/messages`,
+      {
+        chat_room_id: roomId,
+        ...messageData,
+      }
+    );
+    return response;
+  },
+
+  async addReaction(messageId: number, emoji: string, token: string): Promise<any> {
     if (!messageId) {
       console.error("Cannot add reaction: messageId is undefined");
       return;
     }
-    const response = await fetch(
-      `http://localhost:8000/chat/messages/${messageId}/reactions`,
+
+    const response = await apiPost<any>(
+      `${API_ENDPOINTS.chat.messages}/${messageId}/reactions`,
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message_id: messageId,
-          emoji,
-        }),
+        message_id: messageId,
+        emoji,
       }
     );
-    if (!response.ok) {
-      throw new Error(`Failed to add reaction: ${response.statusText}`);
-    }
-    return response.json();
+    return response;
   },
 
-  async createChatRoom(roomData: any, token: string) {
-    const response = await fetch("http://localhost:8000/chat/rooms", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(roomData),
-    });
-    return response.json();
+  async createChatRoom(roomData: any, token: string): Promise<ChatRoom> {
+    const response = await apiPost<ChatRoom>(API_ENDPOINTS.chat.rooms, roomData);
+    return response;
   },
 
-  async getAllUsers(token: string) {
-    const response = await fetch("http://localhost:8000/users/all", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch users: ${response.statusText}`);
-    }
-    return response.json();
+  async getAllUsers(token: string): Promise<any[]> {
+    const response = await apiGet<any[]>(API_ENDPOINTS.users.all);
+    return response;
   },
 };

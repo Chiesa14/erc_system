@@ -41,6 +41,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 // Enums
 enum ActivityStatusEnum {
@@ -147,7 +148,7 @@ export default function PrayerChain() {
       setIsLoading(true);
       try {
         const response = await axios.get(
-          "http://localhost:8000/prayer-chains/",
+          buildApiUrl(API_ENDPOINTS.prayerChains.base),
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -173,7 +174,7 @@ export default function PrayerChain() {
 
     const fetchFamilies = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/families/", {
+        const response = await axios.get(buildApiUrl(API_ENDPOINTS.families.base), {
           headers: { Authorization: `Bearer ${token}` },
         });
         setFamilies(response.data);
@@ -254,7 +255,7 @@ export default function PrayerChain() {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/prayer-chains/",
+        buildApiUrl(API_ENDPOINTS.prayerChains.base),
         {
           family_id: selectedFamilyId,
           schedules: [

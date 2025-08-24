@@ -76,6 +76,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 interface Family {
   id: number;
@@ -230,8 +231,8 @@ export default function AdminDocumentManagement() {
     new Set()
   );
 
-  const baseUrl = "http://localhost:8000/family/family-documents";
-  const familiesUrl = "http://localhost:8000/families";
+  const baseUrl = buildApiUrl(API_ENDPOINTS.families.documents);
+  const familiesUrl = buildApiUrl(API_ENDPOINTS.families.base);
 
   const fetchFamilies = useCallback(async () => {
     try {

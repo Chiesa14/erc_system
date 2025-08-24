@@ -31,6 +31,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -98,8 +99,8 @@ export default function YouthFeedback() {
   });
   const { token, user } = useAuth();
   const { toast } = useToast();
-  const baseUrl = "http://localhost:8000/feedback";
-  const familiesUrl = "http://localhost:8000/families/"; // Assuming families endpoint exists
+  const baseUrl = buildApiUrl(API_ENDPOINTS.feedback.base);
+  const familiesUrl = buildApiUrl(API_ENDPOINTS.families.base);
 
   const filteredFeedback = feedbackData.filter(
     (feedback) => filterStatus === "all" || feedback.status === filterStatus
@@ -345,7 +346,7 @@ export default function YouthFeedback() {
                           key={family.id}
                           value={family.id.toString()}
                         >
-                          {family.name} ({family.category})
+                          {family.name} family - ({family.category})
                         </SelectItem>
                       ))}
                     </SelectContent>

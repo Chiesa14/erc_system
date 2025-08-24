@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 
 interface Family {
   id: number;
@@ -60,7 +61,7 @@ export default function YouthFamilies() {
 
       try {
         setIsLoading(true);
-        const response = await axios.get("http://localhost:8000/families/", {
+        const response = await axios.get(buildApiUrl(API_ENDPOINTS.families.base), {
           headers: { Authorization: `Bearer ${token}` },
         });
         setFamilies(response.data);

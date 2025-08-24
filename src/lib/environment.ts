@@ -1,92 +1,65 @@
 // Environment Configuration for ERC System
-// This file allows easy switching between different deployment environments
+// This file uses a single .env file for easy environment switching
 
-export type Environment = 'development' | 'staging' | 'production';
+export type Environment = "development" | "staging" | "production";
 
-// Environment detection
+// Environment detection from .env file
 export const getCurrentEnvironment = (): Environment => {
   const env = import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE;
-  
-  if (env === 'production') return 'production';
-  if (env === 'staging') return 'staging';
-  return 'development';
+
+  if (env === "production") return "production";
+  if (env === "staging") return "staging";
+  return "development";
 };
 
-// Environment-specific configurations
+// Single environment configuration using .env variables
 export const ENV_CONFIG = {
-  development: {
-    name: 'Development',
-    apiBaseUrl: 'http://localhost:8000',
-    wsBaseUrl: 'ws://localhost:8000',
-    debug: true,
-    logLevel: 'debug',
-    features: {
-      websockets: true,
-      realTimeUpdates: true,
-      debugMode: true,
-    },
-  },
-  staging: {
-    name: 'Staging',
-    apiBaseUrl: 'https://staging.erc-system.com', // Update with your staging URL
-    wsBaseUrl: 'wss://staging.erc-system.com', // Update with your staging WebSocket URL
-    debug: true,
-    logLevel: 'info',
-    features: {
-      websockets: true,
-      realTimeUpdates: true,
-      debugMode: false,
-    },
-  },
-  production: {
-    name: 'Production',
-    apiBaseUrl: 'https://api.erc-system.com', // Update with your production URL
-    wsBaseUrl: 'wss://api.erc-system.com', // Update with your production WebSocket URL
-    debug: false,
-    logLevel: 'warn',
-    features: {
-      websockets: true,
-      realTimeUpdates: true,
-      debugMode: false,
-    },
+  name: import.meta.env.VITE_ENVIRONMENT || "Development",
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000",
+  wsBaseUrl: import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8000",
+  debug: import.meta.env.VITE_DEBUG === "true" || true,
+  logLevel: import.meta.env.VITE_LOG_LEVEL || "debug",
+  features: {
+    websockets: true,
+    realTimeUpdates: true,
+    debugMode: import.meta.env.VITE_DEBUG === "true" || true,
   },
 } as const;
 
 // Get current environment configuration
 export const getCurrentEnvConfig = () => {
-  const env = getCurrentEnvironment();
-  return ENV_CONFIG[env];
+  return ENV_CONFIG;
 };
 
 // Environment variables that can be overridden
-export const getConfigValue = (key: keyof typeof ENV_CONFIG.development) => {
+export const getConfigValue = (key: keyof typeof ENV_CONFIG) => {
   const envVar = import.meta.env[`VITE_${key.toUpperCase()}`];
   if (envVar !== undefined) {
     return envVar;
   }
-  return getCurrentEnvConfig()[key];
+  return ENV_CONFIG[key];
 };
 
 // Feature flags
-export const isFeatureEnabled = (feature: keyof typeof ENV_CONFIG.development.features) => {
-  return getCurrentEnvConfig().features[feature];
+export const isFeatureEnabled = (feature: keyof typeof ENV_CONFIG.features) => {
+  return ENV_CONFIG.features[feature];
 };
 
 // Debug utilities
 export const debugLog = (...args: unknown[]) => {
-  if (getCurrentEnvConfig().debug) {
+  if (ENV_CONFIG.debug) {
     console.log(`[${getCurrentEnvironment().toUpperCase()}]`, ...args);
   }
 };
 
 export const debugWarn = (...args: unknown[]) => {
-  if (getCurrentEnvConfig().debug) {
+  if (ENV_CONFIG.debug) {
     console.warn(`[${getCurrentEnvironment().toUpperCase()}]`, ...args);
   }
 };
 
 export const debugError = (...args: unknown[]) => {
-  if (getCurrentEnvConfig().debug) {
+  if (ENV_CONFIG.debug) {
     console.error(`[${getCurrentEnvironment().toUpperCase()}]`, ...args);
   }
 };
@@ -94,21 +67,27 @@ export const debugError = (...args: unknown[]) => {
 // Environment info for debugging
 export const getEnvironmentInfo = () => {
   const env = getCurrentEnvironment();
-  const config = getCurrentEnvConfig();
-  
+
   return {
     environment: env,
-    name: config.name,
-    apiBaseUrl: config.apiBaseUrl,
-    wsBaseUrl: config.wsBaseUrl,
-    debug: config.debug,
-    logLevel: config.logLevel,
-    features: config.features,
+    name: ENV_CONFIG.name,
+    apiBaseUrl: ENV_CONFIG.apiBaseUrl,
+    wsBaseUrl: ENV_CONFIG.wsBaseUrl,
+    debug: ENV_CONFIG.debug,
+    logLevel: ENV_CONFIG.logLevel,
+    features: ENV_CONFIG.features,
     timestamp: new Date().toISOString(),
     userAgent: navigator.userAgent,
+    envVars: {
+      VITE_ENVIRONMENT: import.meta.env.VITE_ENVIRONMENT,
+      VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+      VITE_WS_BASE_URL: import.meta.env.VITE_WS_BASE_URL,
+      VITE_DEBUG: import.meta.env.VITE_DEBUG,
+      VITE_LOG_LEVEL: import.meta.env.VITE_LOG_LEVEL,
+    },
   };
 };
 
 // Export current environment for easy access
 export const CURRENT_ENVIRONMENT = getCurrentEnvironment();
-export const CURRENT_CONFIG = getCurrentEnvConfig();
+export const CURRENT_CONFIG = ENV_CONFIG;

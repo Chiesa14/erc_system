@@ -52,10 +52,14 @@ export const API_ENDPOINTS = {
 
   // Users
   users: {
+    base: "/users",
     me: "/users/me",
     all: "/users/all",
     profile: "/users/profile",
     update: "/users/update",
+    updateUser: "/users/update-user", // For updating specific user by ID
+    delete: "/users", // For deleting specific user by ID
+    resetAccessCode: "/users/reset-access-code", // For resetting access code by ID
   },
 
   // Families
@@ -64,7 +68,8 @@ export const API_ENDPOINTS = {
     members: "/family/family-members",
     activities: "/family/family-activities",
     documents: "/family/family-documents",
-    stats: "/family/stats",
+    stats: "/family/family-members",
+    activate: "/family/family-members/activate", // For member activation
   },
 
   // Chat & Communication
@@ -105,6 +110,13 @@ export const API_ENDPOINTS = {
     accessCodes: "/admin/access-codes",
     documents: "/admin/documents",
     users: "/admin/users",
+  },
+
+  // Analytics
+  analytics: {
+    performance: "/analytics/performance",
+    insights: "/analytics/insights",
+    export: "/analytics/export",
   },
 } as const;
 

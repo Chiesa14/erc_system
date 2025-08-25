@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useCallback, useMemo } from "react";
-import axios from "axios";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity, TrendingUp, Heart, Globe } from "lucide-react";
 import { ActivityLogger } from "@/components/parent/ActivityLogger";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { API_ENDPOINTS, apiGet } from "@/lib/api";
 
 interface Activity {
   id: number;
@@ -25,7 +25,6 @@ interface ActivityStats {
   color: string;
 }
 
-const API_URL = "http://127.0.0.1:8000";
 
 export default function Activities() {
   const { user, token, loading: authLoading } = useAuth();
@@ -40,27 +39,14 @@ export default function Activities() {
 
   const familyId = user?.family_id;
 
-  const axiosInstance = useMemo(
-    () =>
-      axios.create({
-        baseURL: API_URL,
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-          "Content-Type": "application/json",
-        },
-        timeout: 10000,
-      }),
-    [token]
-  );
 
   const fetchActivityStats = useCallback(async () => {
     if (authLoading || !familyId || !token) return;
 
     try {
-      const response = await axiosInstance.get(
-        `/family/family-activities/family/${familyId}`
+      const activities = await apiGet<Activity[]>(
+        `${API_ENDPOINTS.families.activities}/family/${familyId}`
       );
-      const activities: Activity[] = response.data;
 
       const now = new Date();
       const currentMonth = now.getMonth();
@@ -112,12 +98,11 @@ export default function Activities() {
       console.error("Error fetching activity stats:", error);
       toast({
         title: "Error",
-        description:
-          error.response?.data?.detail || "Failed to fetch activity statistics",
+        description: error.message || "Failed to fetch activity statistics",
         variant: "destructive",
       });
     }
-  }, [authLoading, toast, token, familyId, axiosInstance]);
+  }, [authLoading, toast, token, familyId]);
 
   useEffect(() => {
     if (!authLoading && familyId && token) {

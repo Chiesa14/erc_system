@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useCallback, useMemo } from "react";
-import axios from "axios";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -45,6 +44,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
 
 interface Activity {
   id: number;
@@ -92,17 +92,6 @@ export function ActivityLogger({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
 
-  const axiosInstance = useMemo(
-    () =>
-      axios.create({
-        baseURL: "http://127.0.0.1:8000",
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-          "Content-Type": "application/json",
-        },
-      }),
-    [token]
-  );
 
   const fetchActivities = useCallback(async () => {
     if (authLoading) return;
@@ -110,10 +99,10 @@ export function ActivityLogger({
 
     try {
       setLoading(true);
-      const response = await axiosInstance.get(
-        `/family/family-activities/family/${user.family_id}`
+      const response = await apiGet<Activity[]>(
+        `${API_ENDPOINTS.families.activities}/family/${user.family_id}`
       );
-      const filteredActivities = response.data.filter(
+      const filteredActivities = response.filter(
         (activity: Activity) => activity.category === category
       );
       setActivities(filteredActivities);
@@ -122,14 +111,14 @@ export function ActivityLogger({
       toast({
         title: "Error",
         description:
-          error.response?.data?.detail ||
+          error.message ||
           `Failed to fetch ${title.toLowerCase()}`,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  }, [authLoading, axiosInstance, title, toast, user?.family_id, token, category]);
+  }, [authLoading, title, toast, user?.family_id, token, category]);
 
   useEffect(() => {
     if (!authLoading && user?.family_id && token) {
@@ -148,13 +137,15 @@ export function ActivityLogger({
         category, // Use the prop category
       };
 
-      const url = editingActivity
-        ? `/family/family-activities/${editingActivity.id}`
-        : "/family/family-activities/";
+      if (editingActivity) {
+        await apiPut(
+          `${API_ENDPOINTS.families.activities}/${editingActivity.id}`,
+          activityData
+        );
+      } else {
+        await apiPost(API_ENDPOINTS.families.activities + "/", activityData);
+      }
 
-      const method = editingActivity ? axiosInstance.put : axiosInstance.post;
-
-      await method(url, activityData);
       await fetchActivities();
 
       toast({
@@ -171,7 +162,7 @@ export function ActivityLogger({
       toast({
         title: "Error",
         description:
-          error.response?.data?.detail ||
+          error.message ||
           `Failed to save ${title.toLowerCase()}`,
         variant: "destructive",
       });
@@ -182,7 +173,7 @@ export function ActivityLogger({
     if (!token) return;
 
     try {
-      await axiosInstance.delete(`/family/family-activities/${activityId}`);
+      await apiDelete(`${API_ENDPOINTS.families.activities}/${activityId}`);
       await fetchActivities();
       toast({
         title: "Activity Deleted",
@@ -192,8 +183,7 @@ export function ActivityLogger({
       console.error("Error deleting activity:", error);
       toast({
         title: "Error",
-        description:
-          error.response?.data?.detail || "Failed to delete activity",
+        description: error.message || "Failed to delete activity",
         variant: "destructive",
       });
     }
@@ -217,7 +207,7 @@ export function ActivityLogger({
     if (!token) return;
 
     try {
-      await axiosInstance.put(`/family/family-activities/${activityId}`, {
+      await apiPut(`${API_ENDPOINTS.families.activities}/${activityId}`, {
         status: newStatus,
       });
       await fetchActivities();
@@ -229,7 +219,7 @@ export function ActivityLogger({
       console.error("Error updating status:", error);
       toast({
         title: "Error",
-        description: error.response?.data?.detail || "Failed to update status",
+        description: error.message || "Failed to update status",
         variant: "destructive",
       });
     }

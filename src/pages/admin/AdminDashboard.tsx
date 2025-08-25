@@ -9,8 +9,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Users, UserPlus, FileText, TrendingUp, Key } from "lucide-react";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
+import { API_ENDPOINTS, apiGet } from "@/lib/api";
 
 export default function AdminDashboard() {
   const [userData, setUserData] = useState<any[]>([]);
@@ -20,10 +20,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await axios.get("http://127.0.0.1:8000/users/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUserData(res.data);
+        const userData = await apiGet<any[]>(API_ENDPOINTS.users.all);
+        setUserData(userData);
       } catch (err) {
         console.error("Failed to fetch users:", err);
       } finally {

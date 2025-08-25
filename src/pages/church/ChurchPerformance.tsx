@@ -37,7 +37,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
+import { API_ENDPOINTS, apiGet } from "@/lib/api";
 
 // TypeScript interfaces for the analytics data
 interface OverallMetrics {
@@ -113,26 +113,21 @@ export default function ChurchPerformance() {
     try {
       setLoading(true);
 
-      const params = new URLSearchParams();
-      if (startDate) params.append("start_date", startDate);
-      if (endDate) params.append("end_date", endDate);
+      const params: Record<string, string> = {};
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
 
-      const response = await axios.get(
-        `http://127.0.0.1:8000/analytics/performance?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const analyticsData = await apiGet<AnalyticsData>(
+        API_ENDPOINTS.analytics.performance,
+        params
       );
 
-      setAnalyticsData(response.data);
+      setAnalyticsData(analyticsData);
     } catch (error: any) {
       console.error("Error fetching analytics:", error);
       toast({
         title: "Error",
-        description:
-          error.response?.data?.detail || "Failed to fetch analytics data",
+        description: error.message || "Failed to fetch analytics data",
         variant: "destructive",
       });
     } finally {
@@ -147,20 +142,16 @@ export default function ChurchPerformance() {
     try {
       setInsightsLoading(true);
 
-      const params = new URLSearchParams();
-      if (startDate) params.append("start_date", startDate);
-      if (endDate) params.append("end_date", endDate);
+      const params: Record<string, string> = {};
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
 
-      const response = await axios.get(
-        `http://127.0.0.1:8000/analytics/insights?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const insights = await apiGet<PerformanceInsights>(
+        API_ENDPOINTS.analytics.insights,
+        params
       );
 
-      setInsights(response.data);
+      setInsights(insights);
     } catch (error: any) {
       console.error("Error fetching insights:", error);
       // Don't show error toast for insights as it might not be available for non-admin users
@@ -174,22 +165,17 @@ export default function ChurchPerformance() {
     if (!token) return;
 
     try {
-      const params = new URLSearchParams();
-      if (startDate) params.append("start_date", startDate);
-      if (endDate) params.append("end_date", endDate);
-      params.append("format", "json");
+      const params: Record<string, string> = { format: "json" };
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
 
-      const response = await axios.get(
-        `http://127.0.0.1:8000/analytics/export?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const exportData = await apiGet<any>(
+        API_ENDPOINTS.analytics.export,
+        params
       );
 
       // Create and download file
-      const dataStr = JSON.stringify(response.data, null, 2);
+      const dataStr = JSON.stringify(exportData, null, 2);
       const dataBlob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement("a");
@@ -210,8 +196,7 @@ export default function ChurchPerformance() {
       console.error("Error exporting data:", error);
       toast({
         title: "Export Failed",
-        description:
-          error.response?.data?.detail || "Failed to export analytics data",
+        description: error.message || "Failed to export analytics data",
         variant: "destructive",
       });
     }

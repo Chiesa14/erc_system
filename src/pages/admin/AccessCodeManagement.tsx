@@ -77,7 +77,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
+import { API_ENDPOINTS, apiGet, apiPut } from "@/lib/api";
 
 interface UserWithAccessCode {
   id: number;
@@ -130,13 +130,9 @@ export default function AccessCodeManagement() {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://127.0.0.1:8000/users/all", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const userData = await apiGet<any[]>(API_ENDPOINTS.users.all);
 
-      const formattedUsers: UserWithAccessCode[] = response.data.map(
+      const formattedUsers: UserWithAccessCode[] = userData.map(
         (user: any) => ({
           id: user.id,
           fullName: user.full_name,
@@ -204,14 +200,9 @@ export default function AccessCodeManagement() {
     if (!token) return;
 
     try {
-      const response = await axios.put(
-        `http://127.0.0.1:8000/users/reset-access-code/${userId}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiPut<{ access_code: string }>(
+        `${API_ENDPOINTS.users.resetAccessCode}/${userId}`,
+        {}
       );
 
       // Update the user in the local state
@@ -220,7 +211,7 @@ export default function AccessCodeManagement() {
           user.id === userId
             ? {
                 ...user,
-                access_code: response.data.access_code,
+                access_code: response.access_code,
                 updated_at: new Date().toISOString(),
               }
             : user
@@ -229,7 +220,7 @@ export default function AccessCodeManagement() {
 
       toast({
         title: "Access Code Reset",
-        description: `New access code generated: ${response.data.access_code}`,
+        description: `New access code generated: ${response.access_code}`,
       });
 
       setIsResetDialogOpen(false);
@@ -238,8 +229,7 @@ export default function AccessCodeManagement() {
       console.error("Error resetting access code:", error);
       toast({
         title: "Error",
-        description:
-          error.response?.data?.detail || "Failed to reset access code",
+        description: error.message || "Failed to reset access code",
         variant: "destructive",
       });
     }
@@ -250,14 +240,9 @@ export default function AccessCodeManagement() {
 
     try {
       const resetPromises = Array.from(selectedUsers).map((userId) =>
-        axios.put(
-          `http://127.0.0.1:8000/users/reset-access-code/${userId}`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        apiPut<{ access_code: string }>(
+          `${API_ENDPOINTS.users.resetAccessCode}/${userId}`,
+          {}
         )
       );
 
@@ -276,7 +261,7 @@ export default function AccessCodeManagement() {
               user.id === userId
                 ? {
                     ...user,
-                    access_code: result.value.data.access_code,
+                    access_code: result.value.access_code,
                     updated_at: new Date().toISOString(),
                   }
                 : user

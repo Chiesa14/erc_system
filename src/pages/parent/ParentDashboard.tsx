@@ -88,7 +88,9 @@ export default function ParentDashboard() {
       try {
         setLoading(true);
         const response = await axios.get(
-          `${buildApiUrl(API_ENDPOINTS.families.stats)}/${user.family_id}/stats`,
+          `${buildApiUrl(API_ENDPOINTS.families.stats)}/${
+            user.family_id
+          }/stats`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

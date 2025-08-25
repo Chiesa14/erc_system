@@ -61,7 +61,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
+import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
 
 interface User {
   other: string;
@@ -107,13 +107,9 @@ export default function UserManagement() {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://127.0.0.1:8000/users/all", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const userData = await apiGet<any[]>(API_ENDPOINTS.users.all);
 
-      const formattedUsers: User[] = response.data.map((user: any) => ({
+      const formattedUsers: User[] = userData.map((user: any) => ({
         id: user.id,
         fullName: user.full_name,
         gender: user.gender,
@@ -124,6 +120,7 @@ export default function UserManagement() {
         role: user.role,
         biography: user.biography,
         profile_pic: user.profile_pic,
+        other: user.other || "",
       }));
 
       setUsers(formattedUsers);
@@ -219,14 +216,9 @@ export default function UserManagement() {
 
       if (editingUser) {
         // Update existing user using new endpoint
-        await axios.put(
-          `http://127.0.0.1:8000/users/update-user/${editingUser.id}`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        await apiPut(
+          `${API_ENDPOINTS.users.updateUser}/${editingUser.id}`,
+          payload
         );
 
         toast({
@@ -235,11 +227,7 @@ export default function UserManagement() {
         });
       } else {
         // Create new user
-        await axios.post("http://127.0.0.1:8000/users/", payload, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        await apiPost(`${API_ENDPOINTS.users.base}/`, payload);
 
         toast({
           title: "User registered successfully!",
@@ -266,13 +254,8 @@ export default function UserManagement() {
     } catch (error: any) {
       console.error("Error saving user:", error);
       let errorMessage = "Failed to save user";
-      if (error.response?.status === 422 && error.response?.data?.detail) {
-        const details = error.response.data.detail;
-        errorMessage = details
-          .map((err: any) => `${err.loc[1]}: ${err.msg}`)
-          .join("; ");
-      } else if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
+      if (error.message) {
+        errorMessage = error.message;
       }
 
       toast({
@@ -293,11 +276,7 @@ export default function UserManagement() {
     if (!token) return;
 
     try {
-      await axios.delete(`http://127.0.0.1:8000/users/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await apiDelete(`${API_ENDPOINTS.users.delete}/${userId}`);
 
       setUsers(users.filter((user) => user.id !== userId));
       toast({
@@ -308,7 +287,7 @@ export default function UserManagement() {
       console.error("Error deleting user:", error);
       toast({
         title: "Error",
-        description: error.response?.data?.detail || "Failed to delete user",
+        description: error.message || "Failed to delete user",
         variant: "destructive",
       });
     }

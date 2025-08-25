@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Church, Loader2 } from "lucide-react";
-import axios from "axios";
+import { API_ENDPOINTS, apiPost } from "@/lib/api";
 
 const ChangePassword = () => {
   const [searchParams] = useSearchParams();
@@ -59,8 +59,8 @@ const ChangePassword = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/family/family-members/activate",
+      const response = await apiPost<{ message: string }>(
+        API_ENDPOINTS.families.activate,
         {
           member_id: Number(memberId),
           temp_password: tempPassword,
@@ -70,7 +70,7 @@ const ChangePassword = () => {
 
       toast({
         title: "Password Updated",
-        description: response.data.message || "Account activated successfully.",
+        description: response.message || "Account activated successfully.",
       });
 
       setTimeout(() => {
@@ -79,7 +79,7 @@ const ChangePassword = () => {
     } catch (error: any) {
       toast({
         title: "Activation Failed",
-        description: error?.response?.data?.detail || "Something went wrong.",
+        description: error?.message || "Something went wrong.",
         variant: "destructive",
       });
     } finally {

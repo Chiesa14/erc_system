@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -21,109 +23,180 @@ import {
   Download,
   Eye,
   Search,
-  Calendar,
-  Users,
-  Activity,
   CheckCircle,
   XCircle,
   Clock,
   TrendingUp,
   BarChart3,
+  Activity,
 } from "lucide-react";
-import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import axios from "axios";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
-const programReports = [
-  {
-    id: 1,
-    title: "BCC Program Report - Q1 2024",
-    family: "Joseph Family",
-    submittedBy: "John",
-    dateSubmitted: "2024-01-20",
-    period: "Q1 2024",
-    status: "Approved",
-    type: "BCC",
-    activities: 15,
-    hoursLogged: 45,
-    completionRate: 95,
-  },
-  {
-    id: 2,
-    title: "Youth Activity Progress - January",
-    family: "John Family",
-    submittedBy: "Mary",
-    dateSubmitted: "2024-01-18",
-    period: "January 2024",
-    status: "Under Review",
-    type: "Activity",
-    activities: 12,
-    hoursLogged: 38,
-    completionRate: 88,
-  },
-  {
-    id: 3,
-    title: "Family Home Evening Summary",
-    family: "Abraham Family",
-    submittedBy: "Robert",
-    dateSubmitted: "2024-01-15",
-    period: "December 2023",
-    status: "Pending",
-    type: "FHE",
-    activities: 8,
-    hoursLogged: 24,
-    completionRate: 75,
-  },
-  {
-    id: 4,
-    title: "Service Project Completion Report",
-    family: "David Family",
-    submittedBy: "Jennifer",
-    dateSubmitted: "2024-01-12",
-    period: "Q4 2023",
-    status: "Approved",
-    type: "Service",
-    activities: 6,
-    hoursLogged: 32,
-    completionRate: 100,
-  },
-];
+interface Family {
+  id: number;
+  category: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
 
-const analyticsData = {
-  totalReports: 24,
-  approvedReports: 18,
-  pendingReports: 4,
-  rejectedReports: 2,
-  averageCompletion: 89,
-  totalHours: 456,
-  activeFamilies: 12,
-};
+interface FamilyDocument {
+  id: number;
+  family_id: number;
+  type: "report" | "letter";
+  original_filename: string;
+  status: string;
+  uploaded_at: string;
+  created_at: string;
+  updated_at: string;
+  family: Family;
+}
+
+interface DocumentStats {
+  total_documents: number;
+  total_reports: number;
+  total_letters: number;
+  total_pending: number;
+  total_approved: number;
+  total_reviewed: number;
+  total_submitted: number;
+  top_families: Array<{
+    family_id: number;
+    family_category: string;
+    family_name: string;
+    document_count: number;
+  }>;
+}
 
 export default function ChurchReports() {
+  const { toast } = useToast();
+  const { token } = useAuth();
+  const [reports, setReports] = useState<FamilyDocument[]>([]);
+  const [stats, setStats] = useState<DocumentStats>({
+    total_documents: 0,
+    total_reports: 0,
+    total_letters: 0,
+    total_pending: 0,
+    total_approved: 0,
+    total_reviewed: 0,
+    total_submitted: 0,
+    top_families: [],
+  });
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
 
-  const filteredReports = programReports.filter((report) => {
+  const baseUrl = buildApiUrl(API_ENDPOINTS.families.documents);
+
+  const fetchReports = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${baseUrl}/admin/all?document_type=report&x_total_count=true`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setReports(response.data);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch reports",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast, token]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await axios.get(`${baseUrl}/admin/stats/global`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setStats(response.data);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch statistics",
+        variant: "destructive",
+      });
+    }
+  }, [toast, token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchReports();
+      fetchStats();
+    }
+  }, [fetchReports, fetchStats, token]);
+
+  const handleDownloadDocument = async (docId: number, filename: string) => {
+    try {
+      const response = await axios.get(`${baseUrl}/admin/${docId}/download`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast({
+        title: "Download Started",
+        description: `Downloading ${filename}`,
+      });
+    } catch (error: any) {
+      console.error("Error downloading document:", error);
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.detail || "Failed to download document",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredReports = reports.filter((report) => {
     const matchesSearch =
-      report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.family.toLowerCase().includes(searchTerm.toLowerCase());
+      report.original_filename
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      report.family.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || report.status === statusFilter;
     const matchesType = typeFilter === "all" || report.type === typeFilter;
     const matchesPeriod =
-      periodFilter === "all" || report.period.includes(periodFilter);
+      periodFilter === "all" || report.uploaded_at.includes(periodFilter);
     return matchesSearch && matchesStatus && matchesType && matchesPeriod;
   });
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "Approved":
+      case "approved":
+      case "submitted":
         return <CheckCircle className="h-4 w-4 text-success" />;
-      case "Under Review":
+      case "reviewed":
         return <Clock className="h-4 w-4 text-warning" />;
-      case "Pending":
+      case "pending":
         return <Clock className="h-4 w-4 text-muted-foreground" />;
-      case "Rejected":
+      case "rejected":
         return <XCircle className="h-4 w-4 text-destructive" />;
       default:
         return null;
@@ -132,17 +205,28 @@ export default function ChurchReports() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Approved":
+      case "approved":
+      case "submitted":
         return "bg-success/20 text-success-foreground border-success/40";
-      case "Under Review":
+      case "reviewed":
         return "bg-warning/20 text-warning-foreground border-warning/40";
-      case "Pending":
+      case "pending":
         return "bg-muted text-muted-foreground border-muted/40";
-      case "Rejected":
+      case "rejected":
         return "bg-destructive/20 text-destructive-foreground border-destructive/40";
       default:
         return "";
     }
+  };
+
+  const analyticsData = {
+    totalReports: stats.total_reports,
+    approvedReports: stats.total_submitted,
+    pendingReports: stats.total_pending,
+    rejectedReports: 0,
+    averageCompletion: 89,
+    totalHours: 456,
+    activeFamilies: stats.top_families?.length || 0,
   };
 
   return (
@@ -150,9 +234,7 @@ export default function ChurchReports() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Program Reports
-          </h1>
+          <h1 className="text-3xl font-bold text-foreground">Church Reports</h1>
           <p className="text-muted-foreground">
             Review and manage all submitted family program reports
           </p>
@@ -294,10 +376,8 @@ export default function ChurchReports() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="Approved">Approved</SelectItem>
-                    <SelectItem value="Under Review">Under Review</SelectItem>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Rejected">Rejected</SelectItem>
+                    <SelectItem value="submitted">Submitted</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -306,10 +386,7 @@ export default function ChurchReports() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="BCC">BCC</SelectItem>
-                    <SelectItem value="Activity">Activity</SelectItem>
-                    <SelectItem value="FHE">FHE</SelectItem>
-                    <SelectItem value="Service">Service</SelectItem>
+                    <SelectItem value="report">Report</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={periodFilter} onValueChange={setPeriodFilter}>
@@ -330,84 +407,110 @@ export default function ChurchReports() {
 
           {/* Reports List */}
           <div className="grid gap-4">
-            {filteredReports.map((report) => (
-              <Card
-                key={report.id}
-                className="border-0 shadow-lg bg-gradient-to-br from-card to-muted/5 hover:shadow-xl transition-shadow"
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <FileText className="h-6 w-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg">
-                            {report.title}
-                          </h3>
-                          <Badge
-                            variant="outline"
-                            className={getStatusColor(report.status)}
-                          >
-                            {getStatusIcon(report.status)}
-                            <span className="ml-1">{report.status}</span>
-                          </Badge>
-                          <Badge variant="outline">{report.type}</Badge>
+            {loading ? (
+              <p className="text-center text-muted-foreground">
+                Loading reports...
+              </p>
+            ) : filteredReports.length === 0 ? (
+              <p className="text-center text-muted-foreground">
+                No reports found
+              </p>
+            ) : (
+              filteredReports.map((report) => (
+                <Card
+                  key={report.id}
+                  className="border-0 shadow-lg bg-gradient-to-br from-card to-muted/5 hover:shadow-xl transition-shadow"
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <FileText className="h-6 w-6 text-primary" />
                         </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg">
+                              {report.original_filename}
+                            </h3>
+                            <Badge
+                              variant="outline"
+                              className={getStatusColor(report.status)}
+                            >
+                              {getStatusIcon(report.status)}
+                              <span className="ml-1">
+                                {report.status.charAt(0).toUpperCase() +
+                                  report.status.slice(1)}
+                              </span>
+                            </Badge>
+                            <Badge variant="outline">
+                              {report.type.toUpperCase()}
+                            </Badge>
+                          </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                          <div>
-                            <p className="font-medium text-foreground">
-                              Family:
-                            </p>
-                            <p>{report.family}</p>
-                            <p>By: {report.submittedBy}</p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              Timeline:
-                            </p>
-                            <p>Period: {report.period}</p>
-                            <p>Submitted: {report.dateSubmitted}</p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              Activities:
-                            </p>
-                            <p>{report.activities} activities logged</p>
-                            <p>{report.hoursLogged} hours total</p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              Performance:
-                            </p>
-                            <p>{report.completionRate}% completion rate</p>
-                            <div className="w-full bg-muted rounded-full h-2 mt-1">
-                              <div
-                                className="bg-primary h-2 rounded-full"
-                                style={{ width: `${report.completionRate}%` }}
-                              />
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                            <div>
+                              <p className="font-medium text-foreground">
+                                Family:
+                              </p>
+                              <p>{report.family.name}</p>
+                              <p>By: Family Member</p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                Timeline:
+                              </p>
+                              <p>Period: N/A</p>
+                              <p>
+                                Submitted: {report.uploaded_at.split("T")[0]}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                Activities:
+                              </p>
+                              <p>N/A activities logged</p>
+                              <p>N/A hours total</p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                Performance:
+                              </p>
+                              <p>N/A% completion rate</p>
+                              <div className="w-full bg-muted rounded-full h-2 mt-1">
+                                <div
+                                  className="bg-primary h-2 rounded-full"
+                                  style={{ width: "0%" }}
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Review
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Review
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleDownloadDocument(
+                              report.id,
+                              report.original_filename
+                            )
+                          }
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </TabsContent>
       </Tabs>

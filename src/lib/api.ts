@@ -118,6 +118,12 @@ export const API_ENDPOINTS = {
     insights: "/analytics/insights",
     export: "/analytics/export",
   },
+
+  //dashbaords
+  dashboard: {
+    churchOverview: "/dashboard/church-overview",
+    churchOverviewSummary: "/dashboard/church-stats-summary",
+  },
 } as const;
 
 // Helper function to build full API URLs

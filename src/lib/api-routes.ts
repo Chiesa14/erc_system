@@ -50,5 +50,11 @@ export const ADMIN_ACCESS_CODES_API = buildApiUrl(
 export const ADMIN_DOCUMENTS_API = buildApiUrl(API_ENDPOINTS.admin.documents);
 export const ADMIN_USERS_API = buildApiUrl(API_ENDPOINTS.admin.users);
 
+export const PASTOR_CHURCH_DASHBOARD_API = buildApiUrl(
+  API_ENDPOINTS.dashboard.churchOverview
+);
+export const PASTOR_CHURCH_DASHBOARD_SUMMARY_API = buildApiUrl(
+  API_ENDPOINTS.dashboard.churchOverviewSummary
+);
 // You can keep adding more endpoints here as your app grows.
 // All endpoints now automatically use the correct base URL based on environment.

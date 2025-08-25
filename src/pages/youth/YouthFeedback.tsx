@@ -302,32 +302,48 @@ export default function YouthFeedback() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Family Feedback</h1>
-          <p className="text-sm text-muted-foreground">
+    <div className="space-y-3 xs:space-y-4 md:space-y-6 min-h-full">
+      {/* Enhanced Mobile-First Header */}
+      <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-3 xs:gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg xs:text-xl md:text-2xl lg:text-3xl font-bold text-foreground leading-tight">
+            Family Feedback
+          </h1>
+          <p className="text-2xs xs:text-xs md:text-sm text-muted-foreground mt-1 leading-relaxed">
             Review and respond to feedback from families
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Bell className="h-4 w-4" />
-          <Badge variant="secondary">{newFeedbackCount} new feedback</Badge>
+        <div className="flex items-center gap-2 xs:gap-3 md:gap-4 flex-shrink-0">
+          <div className="flex items-center gap-2 xs:gap-3">
+            <div className="flex items-center gap-1.5 xs:gap-2">
+              <Bell className="h-3 w-3 xs:h-4 xs:w-4 text-muted-foreground" />
+              <Badge
+                variant="secondary"
+                className="text-2xs xs:text-xs px-2 py-1 touch:px-3 touch:py-1.5"
+              >
+                {newFeedbackCount} new
+              </Badge>
+            </div>
+          </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button variant="default" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Submit New Feedback
+              <Button
+                variant="default"
+                size="sm"
+                className="flex items-center gap-1.5 xs:gap-2 text-xs xs:text-sm touch:px-4 touch:py-2.5 whitespace-nowrap"
+              >
+                <Plus className="h-3 w-3 xs:h-4 xs:w-4 flex-shrink-0" />
+                <span className="hidden xs:inline">Submit New</span>
+                <span className="xs:hidden">New</span>
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Submit New Feedback</DialogTitle>
+            <DialogContent className="w-[95vw] max-w-[500px] mx-auto max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="pb-4">
+                <DialogTitle className="text-lg font-semibold">Submit New Feedback</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
+              <div className="space-y-4 py-2">
                 <div className="space-y-2">
-                  <Label htmlFor="family">Family</Label>
+                  <Label htmlFor="family" className="text-sm font-medium">Family</Label>
                   <Select
                     value={createFormData.family_id.toString()}
                     onValueChange={(value) =>
@@ -337,7 +353,7 @@ export default function YouthFeedback() {
                       }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full touch:h-12">
                       <SelectValue placeholder="Select family" />
                     </SelectTrigger>
                     <SelectContent>
@@ -345,6 +361,7 @@ export default function YouthFeedback() {
                         <SelectItem
                           key={family.id}
                           value={family.id.toString()}
+                          className="touch:py-3"
                         >
                           {family.name} family - ({family.category})
                         </SelectItem>
@@ -353,7 +370,7 @@ export default function YouthFeedback() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="subject">Subject</Label>
+                  <Label htmlFor="subject" className="text-sm font-medium">Subject</Label>
                   <Input
                     id="subject"
                     value={createFormData.subject}
@@ -364,10 +381,11 @@ export default function YouthFeedback() {
                       }))
                     }
                     placeholder="Enter subject"
+                    className="w-full touch:h-12"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="content">Content</Label>
+                  <Label htmlFor="content" className="text-sm font-medium">Content</Label>
                   <Textarea
                     id="content"
                     value={createFormData.content}
@@ -378,48 +396,60 @@ export default function YouthFeedback() {
                       }))
                     }
                     placeholder="Write your feedback here..."
+                    className="w-full min-h-[100px] xs:min-h-[120px] touch:min-h-[120px] resize-none"
+                    rows={4}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select
-                    value={createFormData.category}
-                    onValueChange={(value) =>
-                      setCreateFormData((prev) => ({
-                        ...prev,
-                        category: value,
-                      }))
-                    }
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category" className="text-sm font-medium">Category</Label>
+                    <Select
+                      value={createFormData.category}
+                      onValueChange={(value) =>
+                        setCreateFormData((prev) => ({
+                          ...prev,
+                          category: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="w-full touch:h-12">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="praise" className="touch:py-3">Praise</SelectItem>
+                        <SelectItem value="suggestion" className="touch:py-3">Suggestion</SelectItem>
+                        <SelectItem value="question" className="touch:py-3">Question</SelectItem>
+                        <SelectItem value="concern" className="touch:py-3">Concern</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rating" className="text-sm font-medium">Rating (optional)</Label>
+                    <Input
+                      id="rating"
+                      type="number"
+                      min={1}
+                      max={5}
+                      value={createFormData.rating || ""}
+                      onChange={(e) =>
+                        setCreateFormData((prev) => ({
+                          ...prev,
+                          rating: e.target.value,
+                        }))
+                      }
+                      placeholder="1-5"
+                      className="w-full touch:h-12"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col-reverse xs:flex-row gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCreateOpen(false)}
+                    className="w-full xs:w-auto touch:h-12 touch:px-6"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="praise">Praise</SelectItem>
-                      <SelectItem value="suggestion">Suggestion</SelectItem>
-                      <SelectItem value="question">Question</SelectItem>
-                      <SelectItem value="concern">Concern</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rating">Rating (optional, 1-5)</Label>
-                  <Input
-                    id="rating"
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={createFormData.rating || ""}
-                    onChange={(e) =>
-                      setCreateFormData((prev) => ({
-                        ...prev,
-                        rating: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter rating"
-                  />
-                </div>
-                <div className="flex gap-2 pt-4">
+                    Cancel
+                  </Button>
                   <Button
                     onClick={handleCreateFeedback}
                     disabled={
@@ -428,19 +458,16 @@ export default function YouthFeedback() {
                       !createFormData.content.trim() ||
                       !createFormData.family_id
                     }
-                    className="flex-1"
+                    className="w-full xs:w-auto xs:flex-1 touch:h-12 touch:px-6"
                   >
                     {submitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Submitting...
+                      </>
                     ) : (
                       "Submit Feedback"
                     )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsCreateOpen(false)}
-                  >
-                    Cancel
                   </Button>
                 </div>
               </div>
@@ -448,84 +475,122 @@ export default function YouthFeedback() {
           </Dialog>
         </div>
       </div>
-      <div className="flex items-center gap-4">
-        <Label>Filter by status:</Label>
+      
+      {/* Enhanced Mobile-First Filter Section */}
+      <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-4">
+        <Label className="text-sm font-medium text-foreground whitespace-nowrap">
+          Filter by status:
+        </Label>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full xs:w-[180px] md:w-[200px] touch:h-12">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="new">New</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="resolved">Resolved</SelectItem>
+            <SelectItem value="all" className="touch:py-3">All Status</SelectItem>
+            <SelectItem value="new" className="touch:py-3">New</SelectItem>
+            <SelectItem value="pending" className="touch:py-3">Pending</SelectItem>
+            <SelectItem value="resolved" className="touch:py-3">Resolved</SelectItem>
           </SelectContent>
         </Select>
       </div>
-      {/* Feedback List */}
-      <div className="grid gap-4">
+      {/* Enhanced Mobile-First Feedback List */}
+      <div className="space-y-3 xs:space-y-4">
         {filteredFeedback.map((feedback) => (
           <Card
             key={feedback.id}
-            className="shadow-md hover:shadow-lg transition-shadow"
+            className="border-0 shadow-md hover:shadow-lg transition-all duration-200 touch:shadow-lg bg-card"
           >
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="text-lg">{feedback.subject}</CardTitle>
-                  <div className="flex gap-2">
-                    <Badge className={getStatusColor(feedback.status)}>
+            <CardHeader className="p-3 xs:p-4 md:p-6 pb-2 xs:pb-3">
+              <div className="flex flex-col xs:flex-row xs:items-start xs:justify-between gap-2 xs:gap-4">
+                <div className="space-y-2 min-w-0 flex-1">
+                  <CardTitle className="text-sm xs:text-base md:text-lg font-semibold leading-tight pr-2">
+                    {feedback.subject}
+                  </CardTitle>
+                  <div className="flex flex-wrap gap-1.5 xs:gap-2">
+                    <Badge
+                      className={`${getStatusColor(feedback.status)} text-2xs xs:text-xs px-2 py-1 touch:px-3 touch:py-1.5`}
+                    >
                       {feedback.status}
                     </Badge>
-                    <Badge className={getCategoryColor(feedback.category)}>
+                    <Badge
+                      className={`${getCategoryColor(feedback.category)} text-2xs xs:text-xs px-2 py-1 touch:px-3 touch:py-1.5`}
+                    >
                       {feedback.category}
                     </Badge>
                   </div>
                 </div>
                 {!feedback.parent_notified && (
-                  <Badge variant="outline">Parent not notified</Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-2xs xs:text-xs px-2 py-1 whitespace-nowrap flex-shrink-0"
+                  >
+                    Parent not notified
+                  </Badge>
                 )}
               </div>
-              <CardDescription className="flex items-center gap-2 text-sm">
-                <span>{feedback.family_name} family</span>
-                <span>•</span>
-                <span>By {feedback.author}</span>
-                <span>•</span>
-                <Clock className="h-3 w-3" />
-                <span>{format(new Date(feedback.date), "MMM dd, yyyy")}</span>
-                <span>•</span>
-                {renderStars(feedback.rating)}
+              
+              {/* Mobile-optimized metadata */}
+              <CardDescription className="text-2xs xs:text-xs md:text-sm text-muted-foreground space-y-1 xs:space-y-0">
+                <div className="flex flex-wrap items-center gap-1 xs:gap-2">
+                  <span className="font-medium">{feedback.family_name} family</span>
+                  <span className="hidden xs:inline">•</span>
+                  <span>By {feedback.author}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1 xs:gap-2">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3 flex-shrink-0" />
+                    <span>{format(new Date(feedback.date), "MMM dd, yyyy")}</span>
+                  </div>
+                  <span className="hidden xs:inline">•</span>
+                  {renderStars(feedback.rating)}
+                </div>
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm mb-4">{feedback.content}</p>
-              {/* Replies Section */}
+            
+            <CardContent className="p-3 xs:p-4 md:p-6 pt-0">
+              <p className="text-sm xs:text-sm md:text-base mb-3 xs:mb-4 leading-relaxed">
+                {feedback.content}
+              </p>
+              
+              {/* Enhanced Replies Section */}
               {feedback.replies.length > 0 && (
-                <div className="space-y-2 mb-4">
-                  <h4 className="text-sm font-medium">Replies:</h4>
-                  {feedback.replies.map((reply) => (
-                    <div
-                      key={reply.id}
-                      className="pl-4 border-l-2 border-muted text-sm"
-                    >
-                      <div className="font-medium">{reply.author}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(new Date(reply.date), "MMM dd, yyyy")}
+                <div className="space-y-2 xs:space-y-3 mb-3 xs:mb-4">
+                  <h4 className="text-sm xs:text-sm md:text-base font-medium text-foreground">
+                    Replies ({feedback.replies.length}):
+                  </h4>
+                  <div className="space-y-2">
+                    {feedback.replies.map((reply) => (
+                      <div
+                        key={reply.id}
+                        className="pl-3 xs:pl-4 border-l-2 border-muted bg-muted/20 rounded-r-lg p-2 xs:p-3"
+                      >
+                        <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-1 xs:gap-2 mb-1">
+                          <div className="font-medium text-sm text-foreground">
+                            {reply.author}
+                          </div>
+                          <div className="text-2xs xs:text-xs text-muted-foreground">
+                            {format(new Date(reply.date), "MMM dd, yyyy")}
+                          </div>
+                        </div>
+                        <p className="text-sm text-foreground leading-relaxed">
+                          {reply.content}
+                        </p>
                       </div>
-                      <p>{reply.content}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
-              {/* Action Buttons */}
-              <div className="flex gap-2">
+              
+              {/* Enhanced Mobile-First Action Buttons */}
+              <div className="flex flex-col xs:flex-row gap-2 xs:gap-3">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleReply(feedback)}
+                  className="flex items-center justify-center gap-2 touch:h-12 touch:px-4 w-full xs:w-auto"
                 >
-                  <Reply className="h-4 w-4 mr-2" />
-                  Reply
+                  <Reply className="h-3 w-3 xs:h-4 xs:w-4 flex-shrink-0" />
+                  <span className="text-sm">Reply</span>
                 </Button>
 
                 <Select
@@ -535,13 +600,13 @@ export default function YouthFeedback() {
                     handleUpdateStatus(feedback.id, value)
                   }
                 >
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full xs:w-[140px] md:w-[160px] touch:h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
+                    <SelectItem value="new" className="touch:py-3">New</SelectItem>
+                    <SelectItem value="pending" className="touch:py-3">Pending</SelectItem>
+                    <SelectItem value="resolved" className="touch:py-3">Resolved</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -549,53 +614,85 @@ export default function YouthFeedback() {
           </Card>
         ))}
       </div>
-      {/* Reply Dialog */}
+      {/* Enhanced Mobile-First Reply Dialog */}
       <Dialog open={isReplyOpen} onOpenChange={setIsReplyOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reply to Feedback</DialogTitle>
+        <DialogContent className="w-[95vw] max-w-[500px] mx-auto max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="text-lg font-semibold">Reply to Feedback</DialogTitle>
+            {selectedFeedback && (
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                Replying to: "<span className="font-medium">{selectedFeedback.subject}</span>"
+              </p>
+            )}
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="reply">Your Reply</Label>
+              <Label htmlFor="reply" className="text-sm font-medium">Your Reply</Label>
               <Textarea
                 id="reply"
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 placeholder="Write your reply here..."
+                className="w-full min-h-[120px] xs:min-h-[140px] touch:min-h-[140px] resize-none"
+                rows={5}
               />
+              <p className="text-2xs xs:text-xs text-muted-foreground">
+                Be helpful and respectful in your response
+              </p>
             </div>
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex flex-col-reverse xs:flex-row gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsReplyOpen(false)}
+                className="w-full xs:w-auto touch:h-12 touch:px-6"
+              >
+                Cancel
+              </Button>
               <Button
                 onClick={submitReply}
                 disabled={submitting || !replyContent.trim()}
-                className="flex-1"
+                className="w-full xs:w-auto xs:flex-1 touch:h-12 touch:px-6"
               >
                 {submitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Sending...
+                  </>
                 ) : (
                   "Send Reply"
                 )}
-              </Button>
-              <Button variant="outline" onClick={() => setIsReplyOpen(false)}>
-                Cancel
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-      {/* Empty State */}
+      
+      {/* Enhanced Mobile-First Empty State */}
       {filteredFeedback.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="font-medium mb-2">No feedback found</h3>
-            <p className="text-muted-foreground">
-              {filterStatus === "all"
-                ? "No feedback has been submitted yet."
-                : `No feedback with status "${filterStatus}" found.`}
-            </p>
+        <Card className="border-0 shadow-lg">
+          <CardContent className="text-center py-8 xs:py-12 md:py-16 px-4 xs:px-6">
+            <div className="max-w-md mx-auto">
+              <MessageSquare className="h-12 w-12 xs:h-16 xs:w-16 md:h-20 md:w-20 mx-auto mb-4 xs:mb-6 text-muted-foreground opacity-50" />
+              <h3 className="text-base xs:text-lg md:text-xl font-medium mb-2 xs:mb-3 text-foreground">
+                No feedback found
+              </h3>
+              <p className="text-sm xs:text-base text-muted-foreground leading-relaxed">
+                {filterStatus === "all"
+                  ? "No feedback has been submitted yet. When families share their thoughts, they'll appear here."
+                  : `No feedback with status "${filterStatus}" found. Try adjusting your filter or check back later.`}
+              </p>
+              {filterStatus !== "all" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFilterStatus("all")}
+                  className="mt-4 xs:mt-6 touch:h-12 touch:px-6"
+                >
+                  View All Feedback
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

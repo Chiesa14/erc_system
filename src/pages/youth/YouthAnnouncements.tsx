@@ -33,10 +33,13 @@ import {
   Search,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
-
-// API configuration
-const API_BASE_URL = buildApiUrl(API_ENDPOINTS.announcements.base);
+import {
+  API_ENDPOINTS,
+  buildApiUrl,
+  apiGet,
+  apiPost,
+  apiDelete,
+} from "@/lib/api";
 
 // Utility function to format dates
 const formatDate = (date) => {
@@ -60,12 +63,6 @@ const formatDate = (date) => {
     .toString()
     .padStart(2, "0")}, ${d.getFullYear()}`;
 };
-
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-});
 
 const getAnnouncementTypeColor = (type: any) => {
   switch (type) {
@@ -126,7 +123,7 @@ export default function YouthAnnouncements() {
   // Configure axios interceptors with token from useAuth
   useEffect(() => {
     // Request interceptor for authentication
-    const requestInterceptor = api.interceptors.request.use(
+    const requestInterceptor = axios.interceptors.request.use(
       (config) => {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -137,7 +134,7 @@ export default function YouthAnnouncements() {
     );
 
     // Response interceptor for error handling
-    const responseInterceptor = api.interceptors.response.use(
+    const responseInterceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
@@ -155,8 +152,8 @@ export default function YouthAnnouncements() {
 
     // Cleanup interceptors on unmount
     return () => {
-      api.interceptors.request.eject(requestInterceptor);
-      api.interceptors.response.eject(responseInterceptor);
+      axios.interceptors.request.eject(requestInterceptor);
+      axios.interceptors.response.eject(responseInterceptor);
     };
   }, [token, signOut, toast]);
 
@@ -166,8 +163,8 @@ export default function YouthAnnouncements() {
 
     try {
       setLoading(true);
-      const response = await api.get("/announcements/");
-      setAnnouncements(response.data);
+      const response = await apiGet<any[]>(API_ENDPOINTS.announcements.base);
+      setAnnouncements(response);
     } catch (err) {
       toast({
         title: "Error",
@@ -194,10 +191,13 @@ export default function YouthAnnouncements() {
             mimeTypeFilter !== "all" && { mime_type: mimeTypeFilter }),
         };
 
-        const response = await api.get("/shared-documents/", { params });
-        setDocuments(response.data.documents);
-        setTotalPages(response.data.total_pages);
-        setCurrentPage(response.data.page);
+        const response = await apiGet<any>(
+          API_ENDPOINTS.documents.shared,
+          params
+        );
+        setDocuments(response.documents || []);
+        setTotalPages(response.total_pages || 1);
+        setCurrentPage(response.page || 1);
       } catch (err) {
         toast({
           title: "Error",
@@ -241,11 +241,17 @@ export default function YouthAnnouncements() {
         formData.append("flyer", announcementForm.flyer);
       }
 
-      await api.post("/announcements/", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      // Use axios directly for FormData
+      await axios.post(
+        `${buildApiUrl(API_ENDPOINTS.announcements.base)}/`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       await fetchAnnouncements();
       setIsAddAnnouncementOpen(false);
@@ -282,11 +288,17 @@ export default function YouthAnnouncements() {
       formData.append("description", documentForm.description);
       formData.append("is_public", documentForm.is_public.toString());
 
-      await api.post("/shared-documents/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      // Use axios directly for FormData
+      await axios.post(
+        `${buildApiUrl(API_ENDPOINTS.documents.shared)}/upload`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       await fetchDocuments();
       setIsUploadDocOpen(false);
@@ -312,9 +324,10 @@ export default function YouthAnnouncements() {
     if (!token) return;
 
     try {
-      const response = await api.get(
-        `/shared-documents/${documentId}/download`,
+      const response = await axios.get(
+        `${buildApiUrl(API_ENDPOINTS.documents.shared)}/${documentId}/download`,
         {
+          headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
         }
       );
@@ -345,8 +358,11 @@ export default function YouthAnnouncements() {
   const downloadFlyer = async (announcementId: any, title: any) => {
     try {
       const response = await axios.get(
-        `${buildApiUrl(API_ENDPOINTS.announcements.flyer)}/${announcementId}/flyer`,
+        `${buildApiUrl(
+          API_ENDPOINTS.announcements.flyer
+        )}/${announcementId}/flyer`,
         {
+          headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
         }
       );
@@ -394,7 +410,7 @@ export default function YouthAnnouncements() {
 
     try {
       setLoading(true);
-      await api.delete(`/announcements/${announcementId}`);
+      await apiDelete(`${API_ENDPOINTS.announcements.base}/${announcementId}`);
       await fetchAnnouncements();
 
       toast({
@@ -418,7 +434,7 @@ export default function YouthAnnouncements() {
 
     try {
       setLoading(true);
-      await api.delete(`/shared-documents/${documentId}`);
+      await apiDelete(`${API_ENDPOINTS.documents.shared}/${documentId}`);
       await fetchDocuments();
 
       toast({

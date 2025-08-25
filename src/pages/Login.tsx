@@ -144,14 +144,6 @@ const Login = () => {
             </div>
           </CardContent>
         </Card>
-
-        <div className="mt-6 text-center text-xs text-muted-foreground">
-          <p>Demo Accounts for Testing:</p>
-          <p className="mt-1">Admin: admin@gmail.com - admin!123</p>
-          <p>Pastor: pastor@church.com - pastor!123</p>
-          <p>Parent: lee@gmail.com - 7486</p>
-          <p>Youth: tishok14@gmail.com - 1234@@@@</p>
-        </div>
       </div>
     </div>
   );

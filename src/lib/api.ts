@@ -123,6 +123,10 @@ export const API_ENDPOINTS = {
   dashboard: {
     churchOverview: "/dashboard/church-overview",
     churchOverviewSummary: "/dashboard/church-stats-summary",
+    adminOverview: "/dashboard/admin-overview",
+    youthOverview: "/dashboard/youth-overview",
+    parentOVerview: "/dashboard/parent-overview",
+    familyStats: "/dashboard/family",
   },
 } as const;
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -63,16 +64,40 @@ interface FamilyStats {
 }
 
 interface RecentActivity {
-  name: string;
+  description: string;
   date: string;
   status: string;
-  participants: number;
+}
+
+function formatRelativeDate(inputDate: string): string {
+  const date = new Date(inputDate);
+  const now = new Date();
+  const diffTime = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return "Today";
+  } else if (diffDays === 1) {
+    return "Yesterday";
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else if (diffDays < 14) {
+    return "Last week";
+  } else {
+    return date.toLocaleDateString("default", {
+      month: "short",
+      day: "numeric",
+    });
+  }
 }
 
 export default function ParentDashboard() {
   const { user, token, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [stats, setStats] = useState<FamilyStats | null>(null);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -111,6 +136,44 @@ export default function ParentDashboard() {
 
     if (!authLoading) {
       fetchFamilyStats();
+    }
+  }, [user, token, authLoading, toast]);
+
+  // Fetch recent activities
+  useEffect(() => {
+    const fetchRecentActivities = async () => {
+      if (!user?.family_id || !token) {
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          `${buildApiUrl(API_ENDPOINTS.families.activities)}/${
+            user.family_id
+          }/recent`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setRecentActivities(
+          response.data.map((act: any) => ({
+            description: act.description,
+            date: formatRelativeDate(act.date),
+            status: act.status,
+          }))
+        );
+      } catch (err) {
+        console.error("Error fetching recent activities:", err);
+        toast({
+          title: "Error",
+          description: "Unable to load recent activities",
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (!authLoading) {
+      fetchRecentActivities();
     }
   }, [user, token, authLoading, toast]);
 
@@ -199,34 +262,6 @@ export default function ParentDashboard() {
           }))
       : [];
 
-  // Mock recent activities
-  const recentActivities: RecentActivity[] = [
-    {
-      name: "Sunday Service",
-      date: "Today",
-      status: "Completed",
-      participants: 6,
-    },
-    {
-      name: "Youth Bible Study",
-      date: "Yesterday",
-      status: "Completed",
-      participants: 3,
-    },
-    {
-      name: "Family Prayer",
-      date: "2 days ago",
-      status: "Completed",
-      participants: 8,
-    },
-    {
-      name: "Community Outreach",
-      date: "This week",
-      status: "Ongoing",
-      participants: 4,
-    },
-  ];
-
   if (authLoading || loading) {
     return <div>Loading...</div>;
   }
@@ -252,7 +287,9 @@ export default function ParentDashboard() {
               className="bg-success/20 text-success-foreground border-success/40 text-2xs xs:text-xs md:text-sm px-2 py-1 touch:px-3 touch:py-2"
             >
               <Star className="w-3 h-3 xs:w-3 xs:h-3 md:w-4 md:h-4 mr-1 flex-shrink-0" />
-              <span className="truncate">Family Engagement: {engagementPercentage}%</span>
+              <span className="truncate">
+                Family Engagement: {engagementPercentage}%
+              </span>
             </Badge>
           </div>
         </div>
@@ -276,9 +313,14 @@ export default function ParentDashboard() {
             </div>
             <p className="text-2xs xs:text-xs text-muted-foreground flex items-center gap-1">
               <TrendingUp className="w-3 h-3 flex-shrink-0" />
-              <span className="truncate">+{stats.monthly_members} this month</span>
+              <span className="truncate">
+                +{stats.monthly_members} this month
+              </span>
             </p>
-            <Progress value={75} className="mt-2 xs:mt-2 md:mt-3 h-1.5 xs:h-2" />
+            <Progress
+              value={75}
+              className="mt-2 xs:mt-2 md:mt-3 h-1.5 xs:h-2"
+            />
           </CardContent>
         </Card>
 
@@ -389,9 +431,17 @@ export default function ParentDashboard() {
                       cy="50%"
                       labelLine={false}
                       label={({ name, percent }) =>
-                        window.innerWidth > 640 ? `${name} ${(percent * 100).toFixed(0)}%` : `${(percent * 100).toFixed(0)}%`
+                        window.innerWidth > 640
+                          ? `${name} ${(percent * 100).toFixed(0)}%`
+                          : `${(percent * 100).toFixed(0)}%`
                       }
-                      outerRadius={window.innerWidth < 640 ? 50 : window.innerWidth < 768 ? 60 : 70}
+                      outerRadius={
+                        window.innerWidth < 640
+                          ? 50
+                          : window.innerWidth < 768
+                          ? 60
+                          : 70
+                      }
                       fill="#8884d8"
                       dataKey="value"
                     >
@@ -401,10 +451,10 @@ export default function ParentDashboard() {
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: window.innerWidth < 640 ? '12px' : '14px'
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        fontSize: window.innerWidth < 640 ? "12px" : "14px",
                       }}
                     />
                   </PieChart>
@@ -440,23 +490,29 @@ export default function ParentDashboard() {
                 height={200}
                 className="xs:h-52 md:h-64 lg:h-72 min-w-[300px]"
               >
-                <BarChart data={activityData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                <BarChart
+                  data={activityData}
+                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--muted))"
+                  />
                   <XAxis
                     dataKey="month"
                     fontSize={window.innerWidth < 640 ? 10 : 12}
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: "hsl(var(--muted-foreground))" }}
                   />
                   <YAxis
                     fontSize={window.innerWidth < 640 ? 10 : 12}
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: "hsl(var(--muted-foreground))" }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      fontSize: window.innerWidth < 640 ? '12px' : '14px'
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: window.innerWidth < 640 ? "12px" : "14px",
                     }}
                   />
                   <Bar
@@ -499,23 +555,29 @@ export default function ParentDashboard() {
                 height={160}
                 className="xs:h-44 md:h-48 lg:h-52"
               >
-                <LineChart data={engagementData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                <LineChart
+                  data={engagementData}
+                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--muted))"
+                  />
                   <XAxis
                     dataKey="name"
                     fontSize={window.innerWidth < 640 ? 10 : 12}
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: "hsl(var(--muted-foreground))" }}
                   />
                   <YAxis
                     fontSize={window.innerWidth < 640 ? 10 : 12}
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: "hsl(var(--muted-foreground))" }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      fontSize: window.innerWidth < 640 ? '12px' : '14px'
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: window.innerWidth < 640 ? "12px" : "14px",
                     }}
                   />
                   <Line
@@ -526,11 +588,11 @@ export default function ParentDashboard() {
                     dot={{
                       fill: "hsl(var(--success))",
                       strokeWidth: 2,
-                      r: window.innerWidth < 640 ? 3 : 4
+                      r: window.innerWidth < 640 ? 3 : 4,
                     }}
                     activeDot={{
                       r: window.innerWidth < 640 ? 4 : 6,
-                      fill: "hsl(var(--success))"
+                      fill: "hsl(var(--success))",
                     }}
                   />
                 </LineChart>
@@ -564,14 +626,14 @@ export default function ParentDashboard() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-medium text-sm xs:text-sm md:text-base truncate text-foreground">
-                        {activity.name}
+                        {activity.description}
                       </h4>
                       <p className="text-2xs xs:text-xs md:text-sm text-muted-foreground truncate">
                         {activity.date}
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between xs:justify-end gap-2 xs:gap-3 flex-shrink-0">
                     <Badge
                       variant={
@@ -587,9 +649,6 @@ export default function ParentDashboard() {
                     >
                       {activity.status}
                     </Badge>
-                    <span className="text-2xs xs:text-xs md:text-sm text-muted-foreground whitespace-nowrap">
-                      {activity.participants} members
-                    </span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground hidden md:block group-hover:text-foreground transition-colors" />
                   </div>
                 </div>

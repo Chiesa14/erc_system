@@ -73,11 +73,11 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen-safe flex w-full bg-background touch-pan-y">
+      <div className="min-h-screen-safe flex w-full bg-background overflow-hidden touch-pan-y">
         <ChurchSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           {/* Enhanced Mobile-First Header */}
-          <header className="sticky top-0 z-50 h-12 xs:h-14 md:h-16 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80 shadow-sm">
+          <header className="sticky top-0 z-50 h-14 xs:h-16 md:h-20 border-b bg-card/95 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80 shadow-sm">
             <div className="flex h-full items-center justify-between px-2 xs:px-3 md:px-6 gap-2">
               <div className="flex items-center gap-1 xs:gap-2 md:gap-4 min-w-0 flex-1">
                 <SidebarTrigger className="lg:hidden touch:p-3 p-2 -ml-1 xs:-ml-0" />
@@ -90,19 +90,8 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
                   </p>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-1 xs:gap-2 md:gap-3 flex-shrink-0">
-                {/* Enhanced notification button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative h-8 w-8 xs:h-9 xs:w-9 md:h-10 md:w-10 touch:h-11 touch:w-11 hover:bg-accent/50 transition-colors"
-                  aria-label="Church notifications"
-                >
-                  <Bell className="h-4 w-4 xs:h-4 xs:w-4 md:h-5 md:w-5" />
-                  <span className="sr-only">Church notifications</span>
-                </Button>
 
+              <div className="flex items-center gap-1 xs:gap-2 md:gap-3 flex-shrink-0">
                 {/* User info - responsive visibility */}
                 <div className="hidden lg:flex flex-col text-right mr-2">
                   <span className="text-sm font-medium truncate max-w-32 xl:max-w-none">
@@ -112,7 +101,7 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
                     {user?.role || "Youth Pastor"}
                   </span>
                 </div>
-                
+
                 {/* Enhanced user dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -130,7 +119,9 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
                   <DropdownMenuContent align="end" className="w-56 touch:w-64">
                     <DropdownMenuLabel>
                       <div className="flex flex-col space-y-1">
-                        <span className="font-medium truncate">{user?.full_name || "Pastor"}</span>
+                        <span className="font-medium truncate">
+                          {user?.full_name || "Pastor"}
+                        </span>
                         <span className="text-xs text-muted-foreground truncate">
                           {user?.email || "pastor@example.com"}
                         </span>
@@ -156,12 +147,10 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
               </div>
             </div>
           </header>
-          
+
           {/* Enhanced Main Content */}
           <main className="flex-1 p-2 xs:p-3 md:p-4 lg:p-6 xl:p-8 bg-background overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border hover:scrollbar-thumb-border/50">
-            <div className="min-h-full">
-              {children}
-            </div>
+            <div className="min-h-full">{children}</div>
           </main>
         </div>
 
@@ -169,9 +158,11 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
         <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
           <DialogContent className="w-[95vw] max-w-[500px] mx-auto max-h-[90vh] overflow-y-auto">
             <DialogHeader className="pb-4">
-              <DialogTitle className="text-lg font-semibold">Pastor Profile ⛪</DialogTitle>
+              <DialogTitle className="text-lg font-semibold">
+                Pastor Profile ⛪
+              </DialogTitle>
             </DialogHeader>
-            
+
             {/* Mobile-optimized form layout */}
             <div className="space-y-4 py-2">
               <div className="space-y-2">
@@ -187,7 +178,7 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
                   disabled
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">
                   Email Address
@@ -202,7 +193,7 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
                   disabled
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="biography" className="text-sm font-medium">
                   Ministry Biography
@@ -219,7 +210,7 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
                   Optional: Tell the congregation about your ministry
                 </p>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="profile_pic" className="text-sm font-medium">
                   Profile Picture URL
@@ -237,14 +228,18 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
                   Optional: Professional headshot for church directory
                 </p>
               </div>
-              
+
               {/* Read-only ministry information */}
               <div className="pt-2 border-t border-border">
-                <h4 className="text-sm font-medium mb-3">Ministry Information</h4>
-                
+                <h4 className="text-sm font-medium mb-3">
+                  Ministry Information
+                </h4>
+
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2">
-                    <Label className="text-sm text-muted-foreground">Role</Label>
+                    <Label className="text-sm text-muted-foreground">
+                      Role
+                    </Label>
                     <span className="text-sm font-medium">
                       {user?.role || "Youth Pastor"}
                     </span>
@@ -252,7 +247,7 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
                 </div>
               </div>
             </div>
-            
+
             {/* Mobile-optimized footer */}
             <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-4">
               <Button

@@ -80,7 +80,9 @@ export function ChurchSidebar() {
 
   return (
     <Sidebar
-      className={`transition-all duration-300 ease-in-out ${isCollapsed ? "w-12 xs:w-14 md:w-16" : "w-56 xs:w-60 md:w-64 lg:w-72"}`}
+      className={`transition-all duration-300 ease-in-out ${
+        isCollapsed ? "w-12 xs:w-14 md:w-16" : "w-56 xs:w-60 md:w-64"
+      }`}
       collapsible="icon"
     >
       <SidebarContent className="bg-card border-r border-border shadow-lg lg:shadow-none">
@@ -105,7 +107,11 @@ export function ChurchSidebar() {
 
         {/* Enhanced mobile-first navigation */}
         <SidebarGroup className="px-2 xs:px-3 py-3 xs:py-4">
-          <SidebarGroupLabel className={isCollapsed ? "sr-only" : "text-xs xs:text-sm font-medium px-2"}>
+          <SidebarGroupLabel
+            className={
+              isCollapsed ? "sr-only" : "text-xs xs:text-sm font-medium px-2"
+            }
+          >
             Church Administration
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -114,12 +120,16 @@ export function ChurchSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className={`h-9 xs:h-10 md:h-11 ${isCollapsed ? 'px-2 xs:px-3' : 'px-3 xs:px-4'} touch:h-12`}
+                    className={`h-9 xs:h-10 md:h-11 ${
+                      isCollapsed ? "px-2 xs:px-3" : "px-3 xs:px-4"
+                    } touch:h-12`}
                   >
                     <NavLink
                       to={item.url}
                       end
-                      className={`${getNavClass(item.url)} w-full justify-start transition-all duration-200 rounded-lg text-sm xs:text-sm md:text-base font-medium`}
+                      className={`${getNavClass(
+                        item.url
+                      )} w-full justify-start transition-all duration-200 rounded-lg text-sm xs:text-sm md:text-base font-medium`}
                       title={isCollapsed ? item.title : undefined}
                       aria-label={isCollapsed ? item.title : undefined}
                     >

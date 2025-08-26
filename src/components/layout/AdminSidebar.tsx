@@ -34,7 +34,8 @@ export function AdminSidebar() {
   };
 
   const getNavClasses = (path: string) => {
-    const baseClasses = "w-full justify-start transition-all duration-200 rounded-lg";
+    const baseClasses =
+      "w-full justify-start transition-all duration-200 rounded-lg";
     if (isActive(path)) {
       return `${baseClasses} bg-accent text-accent-foreground font-medium`;
     }
@@ -43,7 +44,9 @@ export function AdminSidebar() {
 
   return (
     <Sidebar
-      className={`transition-all duration-300 ease-in-out ${collapsed ? "w-12 xs:w-14 md:w-16" : "w-56 xs:w-60 md:w-64 lg:w-72"}`}
+      className={`transition-all duration-300 ease-in-out ${
+        collapsed ? "w-12 xs:w-14 md:w-16" : "w-56 xs:w-60 md:w-64 "
+      }`}
       collapsible="icon"
       side="left"
     >
@@ -52,7 +55,9 @@ export function AdminSidebar() {
         <div className="p-2 xs:p-3 md:p-4 border-b border-border">
           <div className="flex items-center gap-2 xs:gap-3">
             <div className="w-7 h-7 xs:w-8 xs:h-8 md:w-9 md:h-9 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
-              <span className="text-primary-foreground font-bold text-xs xs:text-sm md:text-base">⛪</span>
+              <span className="text-primary-foreground font-bold text-xs xs:text-sm md:text-base">
+                ⛪
+              </span>
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1">
@@ -69,7 +74,11 @@ export function AdminSidebar() {
 
         {/* Enhanced mobile-first navigation */}
         <SidebarGroup className="px-2 xs:px-3 py-3 xs:py-4">
-          <SidebarGroupLabel className={collapsed ? "sr-only" : "text-xs xs:text-sm font-medium px-2"}>
+          <SidebarGroupLabel
+            className={
+              collapsed ? "sr-only" : "text-xs xs:text-sm font-medium px-2"
+            }
+          >
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -78,7 +87,9 @@ export function AdminSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className={`h-9 xs:h-10 md:h-11 ${collapsed ? 'px-2 xs:px-3' : 'px-3 xs:px-4'} touch:h-12`}
+                    className={`h-9 xs:h-10 md:h-11 ${
+                      collapsed ? "px-2 xs:px-3" : "px-3 xs:px-4"
+                    } touch:h-12`}
                   >
                     <NavLink
                       to={item.url}

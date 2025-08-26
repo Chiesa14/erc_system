@@ -78,7 +78,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
         <main className="flex-1 flex flex-col min-w-0 h-screen">
           {/* Enhanced Mobile-First Header */}
-          <header className="sticky top-0 z-50 h-12 xs:h-14 md:h-16 flex items-center justify-between bg-card/95 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80 border-b border-border px-2 xs:px-3 md:px-6 shadow-sm flex-shrink-0">
+          <header className="sticky top-0 z-50 h-14 xs:h-16 md:h-20 flex items-center justify-between bg-card/95 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80 border-b border-border px-2 xs:px-3 md:px-6 shadow-sm flex-shrink-0">
             <div className="flex items-center gap-1 xs:gap-2 md:gap-4 min-w-0 flex-1">
               <SidebarTrigger className="lg:hidden touch:p-3 p-2 -ml-1 xs:-ml-0" />
               <div className="min-w-0 flex-1">
@@ -101,21 +101,25 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   {user?.role || "Church Administrator"}
                 </p>
               </div>
-              
+
               {/* Enhanced touch-friendly dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <div className="w-8 h-8 xs:w-9 xs:h-9 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs xs:text-sm font-medium flex-shrink-0 cursor-pointer touch:w-11 touch:h-11 hover:bg-primary/90 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-                       role="button"
-                       aria-label="User menu"
-                       tabIndex={0}>
+                  <div
+                    className="w-8 h-8 xs:w-9 xs:h-9 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs xs:text-sm font-medium flex-shrink-0 cursor-pointer touch:w-11 touch:h-11 hover:bg-primary/90 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                    role="button"
+                    aria-label="User menu"
+                    tabIndex={0}
+                  >
                     {user?.full_name?.charAt(0).toUpperCase() || "A"}
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 touch:w-64">
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                      <span className="font-medium truncate">{user?.full_name || "Admin User"}</span>
+                      <span className="font-medium truncate">
+                        {user?.full_name || "Admin User"}
+                      </span>
                       <span className="text-xs text-muted-foreground truncate">
                         {user?.email || "admin@example.com"}
                       </span>
@@ -144,9 +148,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           {/* Enhanced scrollable content area */}
           <div className="flex-1 p-2 xs:p-3 md:p-4 lg:p-6 xl:p-8 overflow-hidden">
             <div className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border hover:scrollbar-thumb-border/50">
-              <div className="min-h-full">
-                {children}
-              </div>
+              <div className="min-h-full">{children}</div>
             </div>
           </div>
         </main>
@@ -156,9 +158,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
         <DialogContent className="w-[95vw] max-w-[500px] mx-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-4">
-            <DialogTitle className="text-lg font-semibold">Profile Details</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
+              Profile Details
+            </DialogTitle>
           </DialogHeader>
-          
+
           {/* Mobile-optimized form layout */}
           <div className="space-y-4 py-2">
             {/* Mobile-first responsive grid */}
@@ -176,7 +180,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 aria-describedby="full_name_help"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
                 Email Address
@@ -192,7 +196,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 aria-describedby="email_help"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="biography" className="text-sm font-medium">
                 Biography
@@ -210,7 +214,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 Optional: Add a brief description about yourself
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="profile_pic" className="text-sm font-medium">
                 Profile Picture URL
@@ -225,12 +229,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 placeholder="https://example.com/image.jpg"
                 aria-describedby="profile_pic_help"
               />
-              <p id="profile_pic_help" className="text-xs text-muted-foreground">
+              <p
+                id="profile_pic_help"
+                className="text-xs text-muted-foreground"
+              >
                 Optional: URL to your profile picture
               </p>
             </div>
           </div>
-          
+
           {/* Mobile-optimized footer */}
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-4">
             <Button

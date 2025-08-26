@@ -302,7 +302,7 @@ export default function YouthFeedback() {
   }
 
   return (
-    <div className="space-y-3 xs:space-y-4 md:space-y-6 min-h-full">
+    <div className="p-6 space-y-8 bg-gradient-to-br from-background via-background to-muted/20">
       {/* Enhanced Mobile-First Header */}
       <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-3 xs:gap-4">
         <div className="min-w-0 flex-1">
@@ -339,11 +339,15 @@ export default function YouthFeedback() {
             </DialogTrigger>
             <DialogContent className="w-[95vw] max-w-[500px] mx-auto max-h-[90vh] overflow-y-auto">
               <DialogHeader className="pb-4">
-                <DialogTitle className="text-lg font-semibold">Submit New Feedback</DialogTitle>
+                <DialogTitle className="text-lg font-semibold">
+                  Submit New Feedback
+                </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
                 <div className="space-y-2">
-                  <Label htmlFor="family" className="text-sm font-medium">Family</Label>
+                  <Label htmlFor="family" className="text-sm font-medium">
+                    Family
+                  </Label>
                   <Select
                     value={createFormData.family_id.toString()}
                     onValueChange={(value) =>
@@ -370,7 +374,9 @@ export default function YouthFeedback() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="subject" className="text-sm font-medium">Subject</Label>
+                  <Label htmlFor="subject" className="text-sm font-medium">
+                    Subject
+                  </Label>
                   <Input
                     id="subject"
                     value={createFormData.subject}
@@ -385,7 +391,9 @@ export default function YouthFeedback() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="content" className="text-sm font-medium">Content</Label>
+                  <Label htmlFor="content" className="text-sm font-medium">
+                    Content
+                  </Label>
                   <Textarea
                     id="content"
                     value={createFormData.content}
@@ -402,7 +410,9 @@ export default function YouthFeedback() {
                 </div>
                 <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="category" className="text-sm font-medium">Category</Label>
+                    <Label htmlFor="category" className="text-sm font-medium">
+                      Category
+                    </Label>
                     <Select
                       value={createFormData.category}
                       onValueChange={(value) =>
@@ -416,15 +426,25 @@ export default function YouthFeedback() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="praise" className="touch:py-3">Praise</SelectItem>
-                        <SelectItem value="suggestion" className="touch:py-3">Suggestion</SelectItem>
-                        <SelectItem value="question" className="touch:py-3">Question</SelectItem>
-                        <SelectItem value="concern" className="touch:py-3">Concern</SelectItem>
+                        <SelectItem value="praise" className="touch:py-3">
+                          Praise
+                        </SelectItem>
+                        <SelectItem value="suggestion" className="touch:py-3">
+                          Suggestion
+                        </SelectItem>
+                        <SelectItem value="question" className="touch:py-3">
+                          Question
+                        </SelectItem>
+                        <SelectItem value="concern" className="touch:py-3">
+                          Concern
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="rating" className="text-sm font-medium">Rating (optional)</Label>
+                    <Label htmlFor="rating" className="text-sm font-medium">
+                      Rating (optional)
+                    </Label>
                     <Input
                       id="rating"
                       type="number"
@@ -475,7 +495,7 @@ export default function YouthFeedback() {
           </Dialog>
         </div>
       </div>
-      
+
       {/* Enhanced Mobile-First Filter Section */}
       <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-4">
         <Label className="text-sm font-medium text-foreground whitespace-nowrap">
@@ -486,10 +506,18 @@ export default function YouthFeedback() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="touch:py-3">All Status</SelectItem>
-            <SelectItem value="new" className="touch:py-3">New</SelectItem>
-            <SelectItem value="pending" className="touch:py-3">Pending</SelectItem>
-            <SelectItem value="resolved" className="touch:py-3">Resolved</SelectItem>
+            <SelectItem value="all" className="touch:py-3">
+              All Status
+            </SelectItem>
+            <SelectItem value="new" className="touch:py-3">
+              New
+            </SelectItem>
+            <SelectItem value="pending" className="touch:py-3">
+              Pending
+            </SelectItem>
+            <SelectItem value="resolved" className="touch:py-3">
+              Resolved
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -508,12 +536,16 @@ export default function YouthFeedback() {
                   </CardTitle>
                   <div className="flex flex-wrap gap-1.5 xs:gap-2">
                     <Badge
-                      className={`${getStatusColor(feedback.status)} text-2xs xs:text-xs px-2 py-1 touch:px-3 touch:py-1.5`}
+                      className={`${getStatusColor(
+                        feedback.status
+                      )} text-2xs xs:text-xs px-2 py-1 touch:px-3 touch:py-1.5`}
                     >
                       {feedback.status}
                     </Badge>
                     <Badge
-                      className={`${getCategoryColor(feedback.category)} text-2xs xs:text-xs px-2 py-1 touch:px-3 touch:py-1.5`}
+                      className={`${getCategoryColor(
+                        feedback.category
+                      )} text-2xs xs:text-xs px-2 py-1 touch:px-3 touch:py-1.5`}
                     >
                       {feedback.category}
                     </Badge>
@@ -528,30 +560,34 @@ export default function YouthFeedback() {
                   </Badge>
                 )}
               </div>
-              
+
               {/* Mobile-optimized metadata */}
               <CardDescription className="text-2xs xs:text-xs md:text-sm text-muted-foreground space-y-1 xs:space-y-0">
                 <div className="flex flex-wrap items-center gap-1 xs:gap-2">
-                  <span className="font-medium">{feedback.family_name} family</span>
+                  <span className="font-medium">
+                    {feedback.family_name} family
+                  </span>
                   <span className="hidden xs:inline">•</span>
                   <span>By {feedback.author}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-1 xs:gap-2">
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3 flex-shrink-0" />
-                    <span>{format(new Date(feedback.date), "MMM dd, yyyy")}</span>
+                    <span>
+                      {format(new Date(feedback.date), "MMM dd, yyyy")}
+                    </span>
                   </div>
                   <span className="hidden xs:inline">•</span>
                   {renderStars(feedback.rating)}
                 </div>
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="p-3 xs:p-4 md:p-6 pt-0">
               <p className="text-sm xs:text-sm md:text-base mb-3 xs:mb-4 leading-relaxed">
                 {feedback.content}
               </p>
-              
+
               {/* Enhanced Replies Section */}
               {feedback.replies.length > 0 && (
                 <div className="space-y-2 xs:space-y-3 mb-3 xs:mb-4">
@@ -580,7 +616,7 @@ export default function YouthFeedback() {
                   </div>
                 </div>
               )}
-              
+
               {/* Enhanced Mobile-First Action Buttons */}
               <div className="flex flex-col xs:flex-row gap-2 xs:gap-3">
                 <Button
@@ -604,9 +640,15 @@ export default function YouthFeedback() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="new" className="touch:py-3">New</SelectItem>
-                    <SelectItem value="pending" className="touch:py-3">Pending</SelectItem>
-                    <SelectItem value="resolved" className="touch:py-3">Resolved</SelectItem>
+                    <SelectItem value="new" className="touch:py-3">
+                      New
+                    </SelectItem>
+                    <SelectItem value="pending" className="touch:py-3">
+                      Pending
+                    </SelectItem>
+                    <SelectItem value="resolved" className="touch:py-3">
+                      Resolved
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -618,16 +660,21 @@ export default function YouthFeedback() {
       <Dialog open={isReplyOpen} onOpenChange={setIsReplyOpen}>
         <DialogContent className="w-[95vw] max-w-[500px] mx-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-4">
-            <DialogTitle className="text-lg font-semibold">Reply to Feedback</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
+              Reply to Feedback
+            </DialogTitle>
             {selectedFeedback && (
               <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                Replying to: "<span className="font-medium">{selectedFeedback.subject}</span>"
+                Replying to: "
+                <span className="font-medium">{selectedFeedback.subject}</span>"
               </p>
             )}
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="reply" className="text-sm font-medium">Your Reply</Label>
+              <Label htmlFor="reply" className="text-sm font-medium">
+                Your Reply
+              </Label>
               <Textarea
                 id="reply"
                 value={replyContent}
@@ -667,7 +714,7 @@ export default function YouthFeedback() {
           </div>
         </DialogContent>
       </Dialog>
-      
+
       {/* Enhanced Mobile-First Empty State */}
       {filteredFeedback.length === 0 && (
         <Card className="border-0 shadow-lg">

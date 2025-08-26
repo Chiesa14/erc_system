@@ -79,11 +79,11 @@ export function YouthLayout({ children }: YouthLayoutProps) {
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Enhanced Mobile-First Header */}
-          <header className="sticky top-0 z-50 h-12 xs:h-14 md:h-16 border-b bg-card/95 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80 shadow-sm">
+          <header className="sticky top-0 z-50 h-14 xs:h-16 md:h-20 border-b bg-card/95 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80 shadow-sm">
             <div className="flex h-full items-center justify-between px-2 xs:px-4 md:px-6 gap-2">
               <div className="flex items-center gap-2 xs:gap-3 min-w-0 flex-1">
                 <SidebarTrigger className="lg:hidden touch:p-3 p-2 -ml-1 xs:-ml-0" />
-                
+
                 {/* Responsive title section */}
                 <div className="min-w-0 flex-1">
                   <div className="hidden md:block">
@@ -103,18 +103,6 @@ export function YouthLayout({ children }: YouthLayoutProps) {
               </div>
 
               <div className="flex items-center gap-1 xs:gap-2 md:gap-4 flex-shrink-0">
-                {/* Enhanced notification button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative h-8 w-8 xs:h-9 xs:w-9 md:h-10 md:w-10 touch:h-11 touch:w-11 hover:bg-accent/50 transition-colors"
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-4 w-4 xs:h-4 xs:w-4 md:h-5 md:w-5" />
-                  <span className="absolute -top-0.5 -right-0.5 xs:-top-1 xs:-right-1 h-2 w-2 xs:h-2.5 xs:w-2.5 md:h-3 md:w-3 bg-destructive rounded-full animate-pulse"></span>
-                  <span className="sr-only">New announcements available</span>
-                </Button>
-
                 {/* Enhanced user dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -132,7 +120,9 @@ export function YouthLayout({ children }: YouthLayoutProps) {
                   <DropdownMenuContent align="end" className="w-56 touch:w-64">
                     <DropdownMenuLabel>
                       <div className="flex flex-col space-y-1">
-                        <span className="font-medium truncate">{user?.full_name || "Youth Member"}</span>
+                        <span className="font-medium truncate">
+                          {user?.full_name || "Youth Member"}
+                        </span>
                         <span className="text-xs text-muted-foreground truncate">
                           {user?.email || "user@example.com"}
                         </span>
@@ -160,10 +150,8 @@ export function YouthLayout({ children }: YouthLayoutProps) {
           </header>
 
           {/* Enhanced Main Content */}
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-2 xs:p-3 md:p-4 lg:p-6 xl:p-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border hover:scrollbar-thumb-border/50">
-            <div className="min-h-full">
-              {children}
-            </div>
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-2 xs:p-3 md:p-4 lg:p-6 xl:p-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border hover:scrollbar-thumb-border/50 ">
+            <div className="min-h-full">{children}</div>
           </main>
         </div>
 
@@ -171,9 +159,11 @@ export function YouthLayout({ children }: YouthLayoutProps) {
         <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
           <DialogContent className="w-[95vw] max-w-[500px] mx-auto max-h-[90vh] overflow-y-auto">
             <DialogHeader className="pb-4">
-              <DialogTitle className="text-lg font-semibold">Youth Profile 🌟</DialogTitle>
+              <DialogTitle className="text-lg font-semibold">
+                Youth Profile 🌟
+              </DialogTitle>
             </DialogHeader>
-            
+
             {/* Mobile-optimized form layout */}
             <div className="space-y-4 py-2">
               <div className="space-y-2">
@@ -189,7 +179,7 @@ export function YouthLayout({ children }: YouthLayoutProps) {
                   disabled
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">
                   Email Address
@@ -204,7 +194,7 @@ export function YouthLayout({ children }: YouthLayoutProps) {
                   disabled
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="biography" className="text-sm font-medium">
                   About Me
@@ -218,7 +208,7 @@ export function YouthLayout({ children }: YouthLayoutProps) {
                   placeholder="Share your faith journey..."
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="profile_pic" className="text-sm font-medium">
                   Profile Picture URL
@@ -233,28 +223,32 @@ export function YouthLayout({ children }: YouthLayoutProps) {
                   placeholder="https://example.com/image.jpg"
                 />
               </div>
-              
+
               {/* Read-only youth information */}
               <div className="pt-2 border-t border-border">
                 <h4 className="text-sm font-medium mb-3">Youth Information</h4>
-                
+
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2">
-                    <Label className="text-sm text-muted-foreground">Role</Label>
-                    <span className="text-sm font-medium">
-                      Youth Member 🙏
-                    </span>
+                    <Label className="text-sm text-muted-foreground">
+                      Role
+                    </Label>
+                    <span className="text-sm font-medium">Youth Member 🙏</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-2">
-                    <Label className="text-sm text-muted-foreground">Family Name</Label>
+                    <Label className="text-sm text-muted-foreground">
+                      Family Name
+                    </Label>
                     <span className="text-sm font-medium">
                       {user?.family_name ? `${user.family_name} family` : "N/A"}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-2">
-                    <Label className="text-sm text-muted-foreground">Family Category</Label>
+                    <Label className="text-sm text-muted-foreground">
+                      Family Category
+                    </Label>
                     <span className="text-sm font-medium">
                       {user?.family_category || "N/A"}
                     </span>
@@ -262,7 +256,7 @@ export function YouthLayout({ children }: YouthLayoutProps) {
                 </div>
               </div>
             </div>
-            
+
             {/* Mobile-optimized footer */}
             <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-4">
               <Button

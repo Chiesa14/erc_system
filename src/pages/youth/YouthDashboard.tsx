@@ -166,10 +166,10 @@ export default function YouthDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+    <div className="p-6 space-y-8 bg-gradient-to-br from-background via-background to-muted/20">
       <div className="p-3 md:p-4 lg:p-6 space-y-4 md:space-y-6">
         {/* Welcome Header */}
-        <div className="text-center space-y-3 md:space-y-4 py-4 md:py-6">
+        <div className="text-center space-y-3 md:space-y-4 py-1 md:py-2">
           <div className="inline-flex items-center gap-2 md:gap-3 bg-card rounded-2xl md:rounded-3xl p-3 md:p-4 shadow-sm border max-w-full">
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center shadow-sm flex-shrink-0">
               <span className="text-xl md:text-2xl">🌟</span>
@@ -433,7 +433,7 @@ export default function YouthDashboard() {
             variant="ghost"
             size="sm"
             onClick={fetchYouthDashboard}
-            className="mt-2 text-xs"
+            className="mt-2 text-xs hover:bg-transparent hover:text-primary"
             disabled={loading}
           >
             {loading ? "Refreshing..." : "Refresh Data"}

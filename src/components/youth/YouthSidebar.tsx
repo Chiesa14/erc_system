@@ -52,7 +52,9 @@ export function YouthSidebar() {
 
   return (
     <Sidebar
-      className={`transition-all duration-300 ease-in-out ${collapsed ? "w-12 xs:w-14 md:w-16" : "w-56 xs:w-60 md:w-64 lg:w-72"}`}
+      className={`transition-all duration-300 ease-in-out ${
+        collapsed ? "w-12 xs:w-14 md:w-16" : "w-56 xs:w-60 md:w-64"
+      }`}
       collapsible="icon"
       side="left"
     >
@@ -78,7 +80,13 @@ export function YouthSidebar() {
 
         {/* Enhanced mobile-first navigation */}
         <SidebarGroup className="px-2 xs:px-3 py-3 xs:py-4">
-          <SidebarGroupLabel className={collapsed ? "sr-only" : "text-xs xs:text-sm font-medium px-2 text-primary"}>
+          <SidebarGroupLabel
+            className={
+              collapsed
+                ? "sr-only"
+                : "text-xs xs:text-sm font-medium px-2 text-primary"
+            }
+          >
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -87,7 +95,9 @@ export function YouthSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className={`h-9 xs:h-10 md:h-11 ${collapsed ? 'px-2 xs:px-3' : 'px-3 xs:px-4'} touch:h-12 rounded-xl`}
+                    className={`h-9 xs:h-10 md:h-11 ${
+                      collapsed ? "px-2 xs:px-3" : "px-3 xs:px-4"
+                    } touch:h-12 rounded-xl`}
                   >
                     <NavLink
                       to={item.url}

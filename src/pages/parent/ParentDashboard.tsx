@@ -159,6 +159,7 @@ export default function ParentDashboard() {
           response.data.map((act: any) => ({
             description: act.description,
             date: formatRelativeDate(act.date),
+
             status: act.status,
           }))
         );
@@ -271,7 +272,7 @@ export default function ParentDashboard() {
   }
 
   return (
-    <div className="space-y-3 xs:space-y-4 md:space-y-6 lg:space-y-8 bg-gradient-to-br from-background via-background to-muted/20 min-h-full">
+    <div className=" xs:space-y-4 md:space-y-6 lg:space-y-8 p-6 space-y-8 bg-gradient-to-br from-background via-background to-muted/20 min-h-full">
       {/* Enhanced Mobile-First Welcome Section */}
       <div className="relative overflow-hidden rounded-lg xs:rounded-xl md:rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-success/10 p-3 xs:p-4 md:p-6 lg:p-8 touch:p-4">
         <div className="relative z-10">

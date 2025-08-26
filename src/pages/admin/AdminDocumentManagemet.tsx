@@ -511,7 +511,7 @@ export default function AdminDocumentManagement() {
   const uniqueFamilies = families.sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <div className="space-y-4 md:space-y-6 p-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 gap-4">
         <div>

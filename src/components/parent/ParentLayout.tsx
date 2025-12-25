@@ -94,6 +94,15 @@ export function ParentLayout({ children }: ParentLayoutProps) {
               </div>
 
               <div className="flex items-center gap-1 xs:gap-2 md:gap-4 flex-shrink-0">
+                {/* User info - responsive visibility */}
+                <div className="text-right hidden lg:block">
+                  <p className="text-sm font-medium text-foreground truncate max-w-32 xl:max-w-none">
+                    {user?.full_name || "Parent User"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user?.role || "Parent"}
+                  </p>
+                </div>
                 {/* Enhanced user dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

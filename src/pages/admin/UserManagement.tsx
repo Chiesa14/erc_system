@@ -1107,21 +1107,6 @@ export default function UserManagement() {
                                         <Eye className="h-3 w-3" />
                                       )}
                                     </Button>
-                                    {visibleCodes.has(user.id) && (
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() =>
-                                          copyToClipboard(
-                                            user.access_code!,
-                                            user.fullName
-                                          )
-                                        }
-                                        className="h-6 w-6 p-0"
-                                      >
-                                        <Copy className="h-3 w-3" />
-                                      </Button>
-                                    )}
                                   </div>
                                 ) : (
                                   <Badge variant="secondary">No Code</Badge>

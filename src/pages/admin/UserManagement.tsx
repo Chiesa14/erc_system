@@ -70,13 +70,9 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
-  Copy,
-  Eye,
-  EyeOff,
   RefreshCw,
   Users,
   Shield,
-  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
@@ -100,17 +96,14 @@ interface User {
   role: string;
   biography: string | null;
   profile_pic: string | null;
-  access_code: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
-interface AccessCodeStats {
+interface UserStats {
   totalUsers: number;
-  usersWithAccessCodes: number;
   adminUsers: number;
   recentlyUpdated: number;
-  percentageWithCodes: number;
 }
 
 export default function UserManagement() {
@@ -119,12 +112,15 @@ export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [stats, setStats] = useState<AccessCodeStats>({
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] =
+    useState(false);
+  const [selectedUserForPasswordReset, setSelectedUserForPasswordReset] =
+    useState<User | null>(null);
+
+  const [stats, setStats] = useState<UserStats>({
     totalUsers: 0,
-    usersWithAccessCodes: 0,
     adminUsers: 0,
     recentlyUpdated: 0,
-    percentageWithCodes: 0,
   });
 
   const [families, setFamilies] = useState<Family[]>([]);
@@ -145,18 +141,11 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterRole, setFilterRole] = useState("all");
-  const [filterAccessCode, setFilterAccessCode] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
-
-  const [visibleCodes, setVisibleCodes] = useState<Set<number>>(new Set());
-  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [bulkResetMode, setBulkResetMode] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -176,7 +165,6 @@ export default function UserManagement() {
         biography: user.biography,
         profile_pic: user.profile_pic,
         other: user.other || "",
-        access_code: user.access_code ?? null,
         created_at: user.created_at,
         updated_at: user.updated_at,
       }));
@@ -184,9 +172,6 @@ export default function UserManagement() {
       setUsers(formattedUsers);
 
       const totalUsers = formattedUsers.length;
-      const usersWithAccessCodes = formattedUsers.filter(
-        (u) => u.access_code
-      ).length;
       const adminUsers = formattedUsers.filter(
         (u) => u.role === "admin"
       ).length;
@@ -201,13 +186,8 @@ export default function UserManagement() {
 
       setStats({
         totalUsers,
-        usersWithAccessCodes,
         adminUsers,
         recentlyUpdated,
-        percentageWithCodes:
-          totalUsers > 0
-            ? Math.round((usersWithAccessCodes / totalUsers) * 100)
-            : 0,
       });
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -221,123 +201,6 @@ export default function UserManagement() {
     }
   }, [toast, token]);
 
-  const copyToClipboard = (text: string, userName: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast({
-        title: "Copied",
-        description: `${userName}'s access code copied to clipboard`,
-      });
-    });
-  };
-
-  const toggleCodeVisibility = (userId: number) => {
-    setVisibleCodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
-  };
-
-  const toggleUserSelection = (userId: number) => {
-    setSelectedUsers((prev) => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
-  };
-
-  const handleResetAccessCode = async (userId: number) => {
-    if (!token) return;
-
-    try {
-      const response = await apiPut<{ access_code: string }>(
-        `${API_ENDPOINTS.users.resetAccessCode}/${userId}`,
-        {}
-      );
-
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === userId
-            ? {
-                ...u,
-                access_code: response.access_code,
-                updated_at: new Date().toISOString(),
-              }
-            : u
-        )
-      );
-
-      toast({
-        title: "Access Code Reset",
-        description: `New access code generated: ${response.access_code}`,
-      });
-    } catch (error: any) {
-      console.error("Error resetting access code:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reset access code",
-        variant: "destructive",
-      });
-    } finally {
-      setIsResetDialogOpen(false);
-      setSelectedUserId(null);
-    }
-  };
-
-  const handleBulkResetAccessCodes = async () => {
-    if (!token || selectedUsers.size === 0) return;
-
-    try {
-      const userIds = Array.from(selectedUsers);
-      const resetPromises = userIds.map((userId) =>
-        apiPut<{ access_code: string }>(
-          `${API_ENDPOINTS.users.resetAccessCode}/${userId}`,
-          {}
-        )
-      );
-
-      const responses = await Promise.allSettled(resetPromises);
-      const successful = responses.filter(
-        (r) => r.status === "fulfilled"
-      ).length;
-      const failed = responses.length - successful;
-
-      setUsers((prev) => {
-        const next = [...prev];
-        responses.forEach((result, index) => {
-          if (result.status !== "fulfilled") return;
-          const userId = userIds[index];
-          const idx = next.findIndex((u) => u.id === userId);
-          if (idx === -1) return;
-          next[idx] = {
-            ...next[idx],
-            access_code: result.value.access_code,
-            updated_at: new Date().toISOString(),
-          };
-        });
-        return next;
-      });
-
-      toast({
-        title: "Bulk Reset Complete",
-        description: `${successful} access codes reset successfully${
-          failed > 0 ? `, ${failed} failed` : ""
-        }`,
-      });
-    } catch (error) {
-      console.error("Error in bulk reset:", error);
-      toast({
-        title: "Error",
-        description: "Failed to complete bulk reset",
-        variant: "destructive",
-      });
-    } finally {
-      setSelectedUsers(new Set());
-      setBulkResetMode(false);
-    }
-  };
 
   const fetchFamilies = useCallback(async () => {
     try {
@@ -355,6 +218,32 @@ export default function UserManagement() {
       setFamiliesLoading(false);
     }
   }, [toast]);
+
+  const handleResetPassword = async (user: User) => {
+    if (!token) return;
+
+    try {
+      await apiPost<{ message: string; user_id: number }>(
+        `${API_ENDPOINTS.users.resetPassword}/${user.id}`,
+        {}
+      );
+
+      toast({
+        title: "Password Reset",
+        description: `A reset email has been sent to ${user.email}`,
+      });
+    } catch (error: any) {
+      console.error("Error resetting password:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetPasswordDialogOpen(false);
+      setSelectedUserForPasswordReset(null);
+    }
+  };
 
   const familyOptions = useMemo(() => {
     return [...families].sort((a, b) => {
@@ -535,7 +424,6 @@ export default function UserManagement() {
     const matchesSearch =
       user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.access_code && user.access_code.includes(searchTerm)) ||
       (user.family_name &&
         user.family_name.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -546,12 +434,7 @@ export default function UserManagement() {
 
     const matchesRole = filterRole === "all" || user.role === filterRole;
 
-    const matchesAccessCode =
-      filterAccessCode === "all" ||
-      (filterAccessCode === "with-code" && user.access_code) ||
-      (filterAccessCode === "without-code" && !user.access_code);
-
-    return matchesSearch && matchesFilter && matchesRole && matchesAccessCode;
+    return matchesSearch && matchesFilter && matchesRole;
   });
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -842,61 +725,6 @@ export default function UserManagement() {
                   <SelectItem value="Pastor">Pastor</SelectItem>
                 </SelectContent>
               </Select>
-
-              <Select
-                value={filterAccessCode}
-                onValueChange={(v) => {
-                  setFilterAccessCode(v);
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-[180px] rounded-xl">
-                  <SelectValue placeholder="Access Codes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="with-code">With Code</SelectItem>
-                  <SelectItem value="without-code">Without Code</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setBulkResetMode(!bulkResetMode)}
-                className="rounded-2xl"
-              >
-                {bulkResetMode ? "Cancel Bulk" : "Bulk Reset"}
-              </Button>
-
-              {bulkResetMode && selectedUsers.size > 0 && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button className="rounded-2xl">
-                      Reset Selected ({selectedUsers.size})
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Reset Multiple Access Codes
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to reset access codes for{" "}
-                        {selectedUsers.size} selected users? This will generate
-                        new codes and invalidate the current ones.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleBulkResetAccessCodes}>
-                        Reset All Selected
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
             </div>
           </div>
         </CardContent>
@@ -928,40 +756,12 @@ export default function UserManagement() {
         <Card className="rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <TrendingUp className="h-4 w-4 text-green-500" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {stats.usersWithAccessCodes}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  With Access Codes
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="rounded-2xl">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
               <RefreshCw className="h-4 w-4 text-orange-500" />
               <div>
                 <p className="text-2xl font-bold">{stats.recentlyUpdated}</p>
                 <p className="text-xs text-muted-foreground">
                   Updated (7 days)
                 </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="rounded-2xl">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-indigo-500" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {stats.percentageWithCodes}%
-                </p>
-                <p className="text-xs text-muted-foreground">Coverage</p>
               </div>
             </div>
           </CardContent>
@@ -994,47 +794,9 @@ export default function UserManagement() {
                     <Table>
                       <TableHeader className="sticky top-0 bg-background z-10">
                         <TableRow>
-                          {bulkResetMode && (
-                            <TableHead className="w-[40px]">
-                              <input
-                                type="checkbox"
-                                checked={
-                                  currentUsers.length > 0 &&
-                                  currentUsers
-                                    .filter((u) => u.access_code)
-                                    .every((u) => selectedUsers.has(u.id))
-                                }
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    const ids = currentUsers
-                                      .filter((u) => u.access_code)
-                                      .map((u) => u.id);
-                                    setSelectedUsers(
-                                      new Set([...selectedUsers, ...ids])
-                                    );
-                                  } else {
-                                    const currentIds = new Set(
-                                      currentUsers.map((u) => u.id)
-                                    );
-                                    setSelectedUsers(
-                                      new Set(
-                                        [...selectedUsers].filter(
-                                          (id) => !currentIds.has(id)
-                                        )
-                                      )
-                                    );
-                                  }
-                                }}
-                                className="rounded"
-                              />
-                            </TableHead>
-                          )}
                           <TableHead className="min-w-[150px]">Name</TableHead>
                           <TableHead className="min-w-[200px] hidden sm:table-cell">
                             Email
-                          </TableHead>
-                          <TableHead className="min-w-[120px]">
-                            Access Code
                           </TableHead>
                           <TableHead className="min-w-[120px] hidden md:table-cell">
                             Family
@@ -1055,20 +817,6 @@ export default function UserManagement() {
                         {currentUsers.length > 0 ? (
                           currentUsers.map((user) => (
                             <TableRow key={user.id}>
-                              {bulkResetMode && (
-                                <TableCell>
-                                  {user.access_code && (
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedUsers.has(user.id)}
-                                      onChange={() =>
-                                        toggleUserSelection(user.id)
-                                      }
-                                      className="rounded"
-                                    />
-                                  )}
-                                </TableCell>
-                              )}
                               <TableCell className="font-medium">
                                 <div>
                                   <p className="font-medium truncate">
@@ -1084,33 +832,6 @@ export default function UserManagement() {
                               </TableCell>
                               <TableCell className="hidden sm:table-cell">
                                 {user.email}
-                              </TableCell>
-                              <TableCell>
-                                {user.access_code ? (
-                                  <div className="flex items-center space-x-2">
-                                    <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
-                                      {visibleCodes.has(user.id)
-                                        ? user.access_code
-                                        : "••••"}
-                                    </code>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() =>
-                                        toggleCodeVisibility(user.id)
-                                      }
-                                      className="h-6 w-6 p-0"
-                                    >
-                                      {visibleCodes.has(user.id) ? (
-                                        <EyeOff className="h-3 w-3" />
-                                      ) : (
-                                        <Eye className="h-3 w-3" />
-                                      )}
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <Badge variant="secondary">No Code</Badge>
-                                )}
                               </TableCell>
                               <TableCell className="hidden md:table-cell">
                                 {user.family_name
@@ -1164,32 +885,15 @@ export default function UserManagement() {
                                     align="end"
                                     className="bg-white z-50"
                                   >
-                                    {user.access_code && (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          copyToClipboard(
-                                            user.access_code!,
-                                            user.fullName
-                                          )
-                                        }
-                                      >
-                                        <Copy className="h-4 w-4 mr-2" />
-                                        Copy Code
-                                      </DropdownMenuItem>
-                                    )}
-                                    {user.role !== "admin" && (
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedUserId(user.id);
-                                          setIsResetDialogOpen(true);
-                                        }}
-                                      >
-                                        <RefreshCw className="h-4 w-4 mr-2" />
-                                        {user.access_code
-                                          ? "Reset Code"
-                                          : "Generate Code"}
-                                      </DropdownMenuItem>
-                                    )}
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedUserForPasswordReset(user);
+                                        setIsResetPasswordDialogOpen(true);
+                                      }}
+                                    >
+                                      <RefreshCw className="h-4 w-4 mr-2" />
+                                      Reset Password
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() => handleEdit(user)}
                                     >
@@ -1211,7 +915,7 @@ export default function UserManagement() {
                         ) : (
                           <TableRow>
                             <TableCell
-                              colSpan={bulkResetMode ? 9 : 8}
+                              colSpan={7}
                               className="h-64 text-center"
                             >
                               <p className="text-muted-foreground">
@@ -1341,26 +1045,29 @@ export default function UserManagement() {
         </CardContent>
       </Card>
 
-      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+      <AlertDialog
+        open={isResetPasswordDialogOpen}
+        onOpenChange={setIsResetPasswordDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reset Access Code</AlertDialogTitle>
+            <AlertDialogTitle>Reset Password</AlertDialogTitle>
             <AlertDialogDescription>
-              This will generate a new access code and invalidate the current
-              one.
+              This will generate a new temporary password and email it to the
+              user.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
-              onClick={() => {
-                setSelectedUserId(null);
-              }}
+              onClick={() => setSelectedUserForPasswordReset(null)}
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (selectedUserId) handleResetAccessCode(selectedUserId);
+                if (selectedUserForPasswordReset) {
+                  handleResetPassword(selectedUserForPasswordReset);
+                }
               }}
             >
               Confirm

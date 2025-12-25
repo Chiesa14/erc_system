@@ -35,7 +35,6 @@ interface AuthUser {
   role: string;
   family_category?: string;
   family_name?: string;
-  access_code?: string;
   family_id?: number;
   profile_pic?: string;
   biography?: string;

@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, apiGet } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface AdminStats {
   total_users: number;
@@ -55,6 +56,7 @@ const AdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAdminDashboard = async () => {
@@ -355,7 +357,10 @@ const AdminDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-              <div className="p-3 md:p-4 rounded-xl bg-primary/10 hover:bg-primary/20 cursor-pointer transition-colors group">
+              <div
+                className="p-3 md:p-4 rounded-xl bg-primary/10 hover:bg-primary/20 cursor-pointer transition-colors group"
+                onClick={() => navigate("users")}
+              >
                 <UserPlus className="h-5 w-5 md:h-6 md:w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-medium text-foreground text-sm md:text-base">
                   Add User
@@ -364,7 +369,10 @@ const AdminDashboard: React.FC = () => {
                   Register new member
                 </p>
               </div>
-              <div className="p-3 md:p-4 rounded-xl bg-accent/10 hover:bg-accent/20 cursor-pointer transition-colors group">
+              <div
+                className="p-3 md:p-4 rounded-xl bg-accent/10 hover:bg-accent/20 cursor-pointer transition-colors group"
+                onClick={() => navigate("reports")}
+              >
                 <FileText className="h-5 w-5 md:h-6 md:w-6 text-accent mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-medium text-foreground text-sm md:text-base">
                   View Reports
@@ -373,12 +381,15 @@ const AdminDashboard: React.FC = () => {
                   Check submissions
                 </p>
               </div>
-              <div className="p-3 md:p-4 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 cursor-pointer transition-colors group">
+              <div
+                className="p-3 md:p-4 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 cursor-pointer transition-colors group"
+                onClick={() => navigate("users")}
+              >
                 <Key className="h-5 w-5 md:h-6 md:w-6 text-orange-500 mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-medium text-foreground text-sm md:text-base">
-                  Access Codes
+                  User Accounts
                 </h3>
-                <p className="text-xs text-muted-foreground">Manage codes</p>
+                <p className="text-xs text-muted-foreground">Manage users</p>
               </div>
               <div className="p-3 md:p-4 rounded-xl bg-muted hover:bg-muted/80 cursor-pointer transition-colors group">
                 <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground mb-2 group-hover:scale-110 transition-transform" />

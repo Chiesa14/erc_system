@@ -16,10 +16,10 @@ import { Church } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { signInWithAccessCode, loading, user } = useAuth();
+  const { signInWithPassword, loading, user } = useAuth();
   const { toast } = useToast();
 
   // Redirect if already authenticated
@@ -39,21 +39,19 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !code) {
+    if (!email || !password) {
       toast({
         title: "Missing Information",
-        description: "Please enter both email and access code",
+        description: "Please enter both email and password",
         variant: "destructive",
       });
       return;
     }
 
-    // Removed code length check to allow any length and characters
-
     setIsSubmitting(true);
 
     try {
-      const { error } = await signInWithAccessCode(email, code);
+      const { error } = await signInWithPassword(email, password);
 
       if (error) {
         toast({
@@ -93,7 +91,7 @@ const Login = () => {
           <CardHeader className="text-center space-y-1">
             <CardTitle className="text-xl">Sign In</CardTitle>
             <CardDescription>
-              Enter your email and access code to continue
+              Enter your email and password to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -112,13 +110,13 @@ const Login = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="code">Please enter your code</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
-                  id="code"
+                  id="password"
                   type="password"
-                  placeholder="Enter your code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)} // no filtering here!
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   disabled={loading || isSubmitting}
                   className=" text-lg tracking-wider transition-all duration-200 focus:shadow-sm"
                 />
@@ -136,9 +134,9 @@ const Login = () => {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
-                Don't have an access code?{" "}
+                First time signing in?{" "}
                 <span className="text-primary font-medium">
-                  Contact your church administrator
+                  Check your email for the activation link
                 </span>
               </p>
             </div>

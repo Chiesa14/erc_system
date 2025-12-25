@@ -44,9 +44,6 @@ export const PRAYER_CHAINS_API = buildApiUrl(API_ENDPOINTS.prayerChains.base);
 export const SHARED_DOCUMENTS_API = buildApiUrl(API_ENDPOINTS.documents.shared);
 
 // Admin endpoints
-export const ADMIN_ACCESS_CODES_API = buildApiUrl(
-  API_ENDPOINTS.admin.accessCodes
-);
 export const ADMIN_DOCUMENTS_API = buildApiUrl(API_ENDPOINTS.admin.documents);
 export const ADMIN_USERS_API = buildApiUrl(API_ENDPOINTS.admin.users);
 

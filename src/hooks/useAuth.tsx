@@ -17,7 +17,6 @@ interface AuthUser {
   role: string;
   family_category?: string;
   family_name?: string;
-  access_code?: string;
   family_id?: number;
   profile_pic?: string;
   biography?: string;
@@ -35,7 +34,7 @@ interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
   loading: boolean;
-  signInWithAccessCode: (
+  signInWithPassword: (
     username: string,
     password: string
   ) => Promise<{ error?: string }>;
@@ -110,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [navigate]);
 
   // Sign in method using username and password sent as form-url-encoded
-  const signInWithAccessCode = async (
+  const signInWithPassword = async (
     username: string,
     password: string
   ): Promise<{ error?: string }> => {
@@ -202,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     token,
     loading,
-    signInWithAccessCode,
+    signInWithPassword,
     signOut,
     updateProfile,
   };

@@ -24,6 +24,7 @@ const ChangePassword = () => {
   const navigate = useNavigate();
 
   const memberId = searchParams.get("member_id");
+  const userId = searchParams.get("user_id");
   const tempPassword = searchParams.get("temp_password");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,7 +48,7 @@ const ChangePassword = () => {
       return;
     }
 
-    if (!memberId || !tempPassword) {
+    if ((!memberId && !userId) || !tempPassword) {
       toast({
         title: "Invalid Link",
         description: "The activation link is missing required information.",
@@ -60,12 +61,18 @@ const ChangePassword = () => {
 
     try {
       const response = await apiPost<{ message: string }>(
-        API_ENDPOINTS.families.activate,
-        {
-          member_id: Number(memberId),
-          temp_password: tempPassword,
-          new_password: newPassword,
-        }
+        memberId ? API_ENDPOINTS.families.activate : API_ENDPOINTS.users.activate,
+        memberId
+          ? {
+              member_id: Number(memberId),
+              temp_password: tempPassword,
+              new_password: newPassword,
+            }
+          : {
+              user_id: Number(userId),
+              temp_password: tempPassword,
+              new_password: newPassword,
+            }
       );
 
       toast({

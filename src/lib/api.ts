@@ -55,11 +55,12 @@ export const API_ENDPOINTS = {
     base: "/users",
     me: "/users/me",
     all: "/users/all",
+    activate: "/users/activate",
+    resetPassword: "/users/reset-password",
     profile: "/users/profile",
     update: "/users/update",
     updateUser: "/users/update-user", // For updating specific user by ID
     delete: "/users", // For deleting specific user by ID
-    resetAccessCode: "/users/reset-access-code", // For resetting access code by ID
   },
 
   // Families
@@ -107,7 +108,6 @@ export const API_ENDPOINTS = {
 
   // Admin
   admin: {
-    accessCodes: "/admin/access-codes",
     documents: "/admin/documents",
     users: "/admin/users",
   },

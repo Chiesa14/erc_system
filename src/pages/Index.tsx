@@ -54,7 +54,7 @@ const Index = () => {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>• Family registration system</li>
                 <li>• Role-based permissions</li>
-                <li>• Access code generation</li>
+                <li>• Account invitations</li>
                 <li>• Member profiles</li>
               </ul>
             </CardContent>

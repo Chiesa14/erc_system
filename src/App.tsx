@@ -149,14 +149,6 @@ const App = () => (
               }
             />
             <Route
-              path="/admin/access-codes"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <Navigate to="/admin/users" replace />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/admin/reports"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>

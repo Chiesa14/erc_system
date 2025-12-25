@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
+import AdminFamilies from "./pages/admin/AdminFamilies";
 import { ParentLayout } from "./components/parent/ParentLayout";
 import ParentDashboard from "./pages/parent/ParentDashboard";
 import FamilyMembers from "./pages/parent/FamilyMembers";
@@ -36,7 +37,6 @@ import ChurchEndorsements from "./pages/church/ChurchEndorsements";
 import PrayerChain from "./pages/church/PrayerChain";
 import ChangePassword from "./pages/ChangePassword";
 import ActivationSuccess from "./pages/ActivationSuccess";
-import AccessCodeManagement from "./pages/admin/AccessCodeManagement";
 import AdminDocumentManagement from "./pages/admin/AdminDocumentManagemet";
 
 const queryClient = new QueryClient();
@@ -139,12 +139,20 @@ const App = () => (
               }
             />
             <Route
-              path="/admin/access-codes"
+              path="/admin/families"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <AdminLayout>
-                    <AccessCodeManagement />
+                    <AdminFamilies />
                   </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/access-codes"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Navigate to="/admin/users" replace />
                 </ProtectedRoute>
               }
             />

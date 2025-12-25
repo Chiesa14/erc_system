@@ -1,4 +1,4 @@
-import { Users, Key, FileText, Home } from "lucide-react";
+import { Users, FileText, Home } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import {
@@ -16,7 +16,7 @@ import {
 const navigationItems = [
   { title: "Dashboard", url: "/admin", icon: Home },
   { title: "Users", url: "/admin/users", icon: Users },
-  { title: "Access Codes", url: "/admin/access-codes", icon: Key },
+  { title: "Families", url: "/admin/families", icon: Users },
   { title: "Reports", url: "/admin/reports", icon: FileText },
 ];
 

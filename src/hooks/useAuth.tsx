@@ -6,6 +6,7 @@ import {
   API_ENDPOINTS,
   AuthTokenManager,
   apiGet,
+  apiPost,
   apiPostForm,
   buildApiUrl,
 } from "@/lib/api";
@@ -108,6 +109,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, [navigate]);
 
+  // Presence heartbeat while authenticated
+  useEffect(() => {
+    if (!token) return;
+
+    const interval = window.setInterval(() => {
+      apiPost(API_ENDPOINTS.auth.heartbeat, {}).catch(() => {
+        // Intentionally ignore heartbeat errors (token expiry is handled elsewhere)
+      });
+    }, 60_000);
+
+    return () => window.clearInterval(interval);
+  }, [token]);
+
   // Sign in method using username and password sent as form-url-encoded
   const signInWithPassword = async (
     username: string,
@@ -152,6 +166,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sign out clears token and user and redirects
   const signOut = async () => {
+    // Best-effort: tell backend we are offline
+    try {
+      await apiPost(API_ENDPOINTS.auth.logout, {});
+    } catch {
+      // Ignore network errors; still clear local session
+    }
     localStorage.removeItem("auth_token");
     setToken(null);
     setUser(null);

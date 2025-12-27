@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, apiGet } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +27,8 @@ import { useNavigate } from "react-router-dom";
 
 interface AdminStats {
   total_users: number;
+  active_users: number;
+  inactive_users: number;
   new_users_this_month: number;
   new_users_last_month: number;
   reports_submitted: number;
@@ -42,10 +45,26 @@ interface RecentActivity {
   details: string;
 }
 
+interface GenderDistribution {
+  name: string;
+  value: number;
+  color: string;
+}
+
 interface AdminDashboardData {
   stats: AdminStats;
+  user_gender_distribution: GenderDistribution[];
+  youth_members_count: number;
+  youth_members_young_count: number;
+  youth_members_mature_count: number;
+  youth_members_target: number;
+  youth_members_progress_percent: number;
   recent_activities: RecentActivity[];
   last_updated: string;
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
 const AdminDashboard: React.FC = () => {
@@ -182,6 +201,11 @@ const AdminDashboard: React.FC = () => {
     return null;
   }
 
+  const circleSize = 160;
+  const strokeWidth = 14;
+  const radius = (circleSize - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
   const stats = [
     {
       title: "Total Users",
@@ -191,7 +215,31 @@ const AdminDashboard: React.FC = () => {
         ? ("positive" as const)
         : ("negative" as const),
       icon: Users,
-      description: "Active registered users",
+      description: "Registered users",
+    },
+    {
+      title: "Active Users",
+      value: dashboardData.stats.active_users.toString(),
+      change:
+        (
+          (dashboardData.stats.active_users * 100) /
+          dashboardData.stats.total_users
+        ).toString() + "%",
+      changeType: "positive" as const,
+      icon: Activity,
+      description: "Online now",
+    },
+    {
+      title: "Inactive Users",
+      value: dashboardData.stats.inactive_users.toString(),
+      change:
+        (
+          (dashboardData.stats.inactive_users * 100) /
+          dashboardData.stats.total_users
+        ).toString() + "%",
+      changeType: "negative" as const,
+      icon: Users,
+      description: "Offline now",
     },
     {
       title: "New This Month",
@@ -201,7 +249,7 @@ const AdminDashboard: React.FC = () => {
         ? ("positive" as const)
         : ("negative" as const),
       icon: UserPlus,
-      description: "New user registrations",
+      description: "New user",
     },
     {
       title: "Reports Submitted",
@@ -220,6 +268,13 @@ const AdminDashboard: React.FC = () => {
       description: "Participating families",
     },
   ];
+
+  const youthPercent = clampNumber(
+    dashboardData.youth_members_progress_percent,
+    0,
+    100
+  );
+  const dashOffset = circumference * (1 - youthPercent / 100);
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -256,7 +311,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 md:gap-6">
         {stats.map((stat) => (
           <Card
             key={stat.title}
@@ -273,14 +328,16 @@ const AdminDashboard: React.FC = () => {
                 {loading ? "..." : stat.value}
               </div>
               <div className="flex items-center space-x-2 mt-1">
-                <Badge
-                  variant={
-                    stat.changeType === "positive" ? "default" : "destructive"
-                  }
-                  className="text-xs"
-                >
-                  {stat.change}
-                </Badge>
+                {stat.change ? (
+                  <Badge
+                    variant={
+                      stat.changeType === "positive" ? "default" : "destructive"
+                    }
+                    className="text-xs"
+                  >
+                    {stat.change}
+                  </Badge>
+                ) : null}
                 <p className="text-xs text-muted-foreground">
                   {stat.description}
                 </p>
@@ -290,113 +347,141 @@ const AdminDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* Recent Activities and Quick Actions */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-        {/* Recent Activities */}
+      {/* Additional Statistics */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <Card className="rounded-2xl shadow-sm">
           <CardHeader>
-            <CardTitle>Recent Activities</CardTitle>
-            <CardDescription>
-              Latest actions from your church community
-            </CardDescription>
+            <CardTitle>Total Youth</CardTitle>
+            <CardDescription>Total youth members and their family categories</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {dashboardData.recent_activities.length > 0 ? (
-                dashboardData.recent_activities
-                  .filter(
-                    (activity) => activity.action.toLowerCase() !== "view"
-                  )
-                  .slice(0, 5)
-                  .map((activity, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center space-x-4 p-3 rounded-xl bg-muted/30 hover:bg-muted/40 transition-colors"
-                    >
-                      <div className="flex-shrink-0">
-                        {getActivityIcon(activity.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {activity.user}
-                          </p>
-                          <Badge
-                            className={`text-xs ${getActivityTypeColor(
-                              activity.type
-                            )}`}
-                            variant="secondary"
-                          >
-                            {activity.type}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {activity.details}
-                        </p>
-                      </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {activity.time}
-                      </span>
-                    </div>
-                  ))
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No recent activities</p>
+              <div className="text-3xl font-bold text-foreground">
+                {dashboardData.youth_members_count}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-md border border-purple-300/60 bg-purple-50/40 p-3">
+                  <div className="text-xs font-medium text-purple-700">Young Families</div>
+                  <div className="mt-1 text-2xl font-bold text-foreground">
+                    {dashboardData.youth_members_young_count}
+                  </div>
                 </div>
-              )}
+
+                <div className="rounded-md border border-green-300/60 bg-green-50/40 p-3">
+                  <div className="text-xs font-medium text-green-700">Mature Families</div>
+                  <div className="mt-1 text-2xl font-bold text-foreground">
+                    {dashboardData.youth_members_mature_count}
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
         <Card className="rounded-2xl shadow-sm">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common administrative tasks</CardDescription>
+            <CardTitle>User Gender Distribution</CardTitle>
+            <CardDescription>
+              Gender distribution of registered users
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-              <div
-                className="p-3 md:p-4 rounded-xl bg-primary/10 hover:bg-primary/20 cursor-pointer transition-colors group"
-                onClick={() => navigate("users")}
-              >
-                <UserPlus className="h-5 w-5 md:h-6 md:w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                <h3 className="font-medium text-foreground text-sm md:text-base">
-                  Add User
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Register new member
-                </p>
+            {dashboardData.user_gender_distribution?.length ? (
+              <div className="h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={dashboardData.user_gender_distribution}
+                      cx="50%"
+                      cy="50%"
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius="55%"
+                      outerRadius="80%"
+                      paddingAngle={2}
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}%`}
+                    >
+                      {dashboardData.user_gender_distribution.map(
+                        (entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        )
+                      )}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-              <div
-                className="p-3 md:p-4 rounded-xl bg-accent/10 hover:bg-accent/20 cursor-pointer transition-colors group"
-                onClick={() => navigate("reports")}
-              >
-                <FileText className="h-5 w-5 md:h-6 md:w-6 text-accent mb-2 group-hover:scale-110 transition-transform" />
-                <h3 className="font-medium text-foreground text-sm md:text-base">
-                  View Reports
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Check submissions
-                </p>
+            ) : (
+              <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">
+                No gender distribution data.
               </div>
-              <div
-                className="p-3 md:p-4 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 cursor-pointer transition-colors group"
-                onClick={() => navigate("users")}
-              >
-                <Key className="h-5 w-5 md:h-6 md:w-6 text-orange-500 mb-2 group-hover:scale-110 transition-transform" />
-                <h3 className="font-medium text-foreground text-sm md:text-base">
-                  User Accounts
-                </h3>
-                <p className="text-xs text-muted-foreground">Manage users</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl shadow-sm">
+          <CardHeader>
+            <CardTitle>Youth Members Target</CardTitle>
+            <CardDescription>
+              Progress toward {dashboardData.youth_members_target} youth members
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+              <div className="flex items-center justify-center sm:justify-start">
+                <div
+                  className="relative"
+                  style={{ width: circleSize, height: circleSize }}
+                >
+                  <svg width={circleSize} height={circleSize}>
+                    <circle
+                      cx={circleSize / 2}
+                      cy={circleSize / 2}
+                      r={radius}
+                      stroke="hsl(var(--muted))"
+                      strokeWidth={strokeWidth}
+                      fill="transparent"
+                    />
+                    <circle
+                      cx={circleSize / 2}
+                      cy={circleSize / 2}
+                      r={radius}
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={strokeWidth}
+                      fill="transparent"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={dashOffset}
+                      strokeLinecap="round"
+                      transform={`rotate(-90 ${circleSize / 2} ${
+                        circleSize / 2
+                      })`}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <div className="text-3xl font-bold text-foreground">
+                      {youthPercent.toFixed(0)}%
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {dashboardData.youth_members_count} /{" "}
+                      {dashboardData.youth_members_target}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="p-3 md:p-4 rounded-xl bg-muted hover:bg-muted/80 cursor-pointer transition-colors group">
-                <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground mb-2 group-hover:scale-110 transition-transform" />
-                <h3 className="font-medium text-foreground text-sm md:text-base">
-                  Analytics
-                </h3>
-                <p className="text-xs text-muted-foreground">View insights</p>
+
+              <div className="flex-1 space-y-2">
+                <div className="text-sm text-muted-foreground">
+                  Current youth members
+                </div>
+                <div className="text-2xl font-bold text-foreground">
+                  {dashboardData.youth_members_count}
+                </div>
+                <div className="text-sm text-muted-foreground">Target</div>
+                <div className="text-lg font-semibold text-foreground">
+                  {dashboardData.youth_members_target}
+                </div>
               </div>
             </div>
           </CardContent>

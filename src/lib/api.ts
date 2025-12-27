@@ -48,6 +48,7 @@ export const API_ENDPOINTS = {
     register: "/auth/register",
     refresh: "/auth/refresh",
     logout: "/auth/logout",
+    heartbeat: "/auth/heartbeat",
   },
 
   // Users

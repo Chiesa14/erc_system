@@ -77,6 +77,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { ReportViewer } from "@/components/documents/ReportViewer";
 
 interface Family {
   id: number;
@@ -96,6 +97,10 @@ interface FamilyDocument {
   created_at: string;
   updated_at: string;
   family: Family;
+  storage_type?: "file" | "structured";
+  title?: string | null;
+  content_json?: string | null;
+  content_html?: string | null;
 }
 
 interface DocumentStats {
@@ -231,8 +236,30 @@ export default function AdminDocumentManagement() {
     new Set()
   );
 
+  const [viewDocOpen, setViewDocOpen] = useState(false);
+  const [viewDoc, setViewDoc] = useState<FamilyDocument | null>(null);
+
   const baseUrl = buildApiUrl(API_ENDPOINTS.families.documents);
   const familiesUrl = buildApiUrl(API_ENDPOINTS.families.base);
+
+  const handleViewDocument = async (docId: number) => {
+    try {
+      const response = await axios.get(`${baseUrl}/admin/${docId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setViewDoc(response.data);
+      setViewDocOpen(true);
+    } catch (error: any) {
+      console.error("Error loading document:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to load document",
+        variant: "destructive",
+      });
+    }
+  };
 
   const fetchFamilies = useCallback(async () => {
     try {
@@ -846,15 +873,28 @@ export default function AdminDocumentManagement() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
                                   <DropdownMenuItem
-                                    onClick={() =>
-                                      handleDownloadDocument(
-                                        doc.id,
-                                        doc.original_filename
-                                      )
-                                    }
+                                    onClick={() => {
+                                      if (doc.storage_type === "structured") {
+                                        handleViewDocument(doc.id);
+                                      } else {
+                                        handleDownloadDocument(
+                                          doc.id,
+                                          doc.original_filename
+                                        );
+                                      }
+                                    }}
                                   >
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Download
+                                    {doc.storage_type === "structured" ? (
+                                      <>
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        View
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Download
+                                      </>
+                                    )}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => {
@@ -1039,6 +1079,28 @@ export default function AdminDocumentManagement() {
         }}
         onUpdate={handleUpdateStatus}
       />
+
+      <Dialog open={viewDocOpen} onOpenChange={setViewDocOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {viewDoc?.title || viewDoc?.original_filename || "Document"}
+            </DialogTitle>
+            <DialogDescription>
+              {viewDoc?.family?.category} - {viewDoc?.family?.name} Family
+            </DialogDescription>
+          </DialogHeader>
+          {viewDoc?.type === "letter" && (
+            <div
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: viewDoc.content_html || "" }}
+            />
+          )}
+          {viewDoc?.type === "report" && (
+            <ReportViewer contentJson={viewDoc.content_json} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

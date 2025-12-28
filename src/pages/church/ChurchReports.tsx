@@ -34,6 +34,13 @@ import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ReportViewer } from "@/components/documents/ReportViewer";
 
 interface Family {
   id: number;
@@ -53,6 +60,10 @@ interface FamilyDocument {
   created_at: string;
   updated_at: string;
   family: Family;
+  storage_type?: "file" | "structured";
+  title?: string | null;
+  content_json?: string | null;
+  content_html?: string | null;
 }
 
 interface DocumentStats {
@@ -90,6 +101,9 @@ export default function ChurchReports() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
+
+  const [viewDocOpen, setViewDocOpen] = useState(false);
+  const [viewDoc, setViewDoc] = useState<FamilyDocument | null>(null);
 
   const baseUrl = buildApiUrl(API_ENDPOINTS.families.documents);
 
@@ -168,6 +182,25 @@ export default function ChurchReports() {
         title: "Error",
         description:
           error.response?.data?.detail || "Failed to download document",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewDocument = async (docId: number) => {
+    try {
+      const response = await axios.get(`${baseUrl}/admin/${docId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setViewDoc(response.data);
+      setViewDocOpen(true);
+    } catch (error: any) {
+      console.error("Error loading document:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to load document",
         variant: "destructive",
       });
     }
@@ -492,19 +525,30 @@ export default function ChurchReports() {
                           <Eye className="h-4 w-4 mr-2" />
                           Review
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            handleDownloadDocument(
-                              report.id,
-                              report.original_filename
-                            )
-                          }
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
+                        {report.storage_type === "structured" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewDocument(report.id)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              handleDownloadDocument(
+                                report.id,
+                                report.original_filename
+                              )
+                            }
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -514,6 +558,23 @@ export default function ChurchReports() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={viewDocOpen} onOpenChange={setViewDocOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewDoc?.title || viewDoc?.original_filename}</DialogTitle>
+          </DialogHeader>
+          {viewDoc?.type === "report" && (
+            <ReportViewer contentJson={viewDoc.content_json} />
+          )}
+          {viewDoc?.type === "letter" && (
+            <div
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: viewDoc.content_html || "" }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -6,10 +6,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FileUp, FileText, Download, Upload } from "lucide-react";
+import { FileUp, FileText, Download, Upload, Eye } from "lucide-react";
 import { UploadSection } from "@/components/parent/UploadSection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -22,6 +28,7 @@ import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { ReportViewer } from "@/components/documents/ReportViewer";
 
 const BASE_URL = buildApiUrl(API_ENDPOINTS.families.documents);
 
@@ -32,6 +39,10 @@ interface Document {
   status: string;
   uploaded_at: string;
   family_id: number;
+  storage_type?: "file" | "structured";
+  title?: string | null;
+  content_json?: string | null;
+  content_html?: string | null;
 }
 
 export default function Documents() {
@@ -40,6 +51,8 @@ export default function Documents() {
     { label: string; value: number; color: string }[]
   >([]);
   const [recentDocuments, setRecentDocuments] = useState<Document[]>([]);
+  const [viewDocOpen, setViewDocOpen] = useState(false);
+  const [viewDoc, setViewDoc] = useState<Document | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const documentsPerPage = 2;
   const { token, user } = useAuth();
@@ -92,8 +105,34 @@ export default function Documents() {
         });
       }
     };
+
     fetchStats();
   }, [token, user, toast]);
+
+  const handleView = async (docId: number) => {
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Authentication token is missing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${BASE_URL}/${docId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setViewDoc(response.data as Document);
+      setViewDocOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load document.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Fetch top 2 recent documents
   useEffect(() => {
@@ -347,13 +386,23 @@ export default function Documents() {
                       >
                         {doc.status}
                       </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownload(doc.id)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      {doc.storage_type === "structured" ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleView(doc.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownload(doc.id)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -498,6 +547,25 @@ export default function Documents() {
             </CardContent>
           </Card>
         </div>
+
+        <Dialog open={viewDocOpen} onOpenChange={setViewDocOpen}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {viewDoc?.title || viewDoc?.original_filename}
+              </DialogTitle>
+            </DialogHeader>
+            {viewDoc?.type === "letter" && (
+              <div
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: viewDoc.content_html || "" }}
+              />
+            )}
+            {viewDoc?.type === "report" && (
+              <ReportViewer contentJson={viewDoc.content_json} />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

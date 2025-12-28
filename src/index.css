@@ -28,7 +28,7 @@ All colors MUST be HSL.
 
     --accent: 130 35% 40%;
     --accent-foreground: 0 0% 100%;
-    
+
     /* Spiritual color palette additions */
     --spiritual-blue: 210 45% 50%;
     --spiritual-blue-foreground: 0 0% 100%;
@@ -50,7 +50,7 @@ All colors MUST be HSL.
 
     --success: 120 100% 40%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 45 100% 50%;
     --warning-foreground: 0 0% 100%;
 
@@ -97,10 +97,10 @@ All colors MUST be HSL.
 
     --destructive: 0 100% 45%;
     --destructive-foreground: 210 40% 98%;
-    
+
     --success: 120 100% 35%;
     --success-foreground: 210 40% 98%;
-    
+
     --warning: 45 100% 45%;
     --warning-foreground: 210 40% 98%;
 
@@ -197,13 +197,18 @@ All colors MUST be HSL.
   }
 
   /* Enhanced mobile-first form elements */
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     @apply text-sm xs:text-base;
     @apply leading-normal;
   }
 
   /* Touch-friendly interactive elements */
-  button, [role="button"], input[type="button"], input[type="submit"] {
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"] {
     @apply min-h-[44px] min-w-[44px];
     @apply touch:min-h-[48px] touch:min-w-[48px];
   }
@@ -254,7 +259,7 @@ All colors MUST be HSL.
     * {
       @apply border-foreground/20;
     }
-    
+
     .bg-muted {
       @apply bg-foreground/10;
     }
@@ -269,7 +274,9 @@ All colors MUST be HSL.
 
   /* Reduced motion preferences */
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
@@ -281,11 +288,11 @@ All colors MUST be HSL.
     * {
       @apply text-black bg-white;
     }
-    
+
     .no-print {
       display: none !important;
     }
-    
+
     a::after {
       content: " (" attr(href) ")";
       @apply text-xs text-gray-600;
@@ -431,11 +438,15 @@ All colors MUST be HSL.
 
   /* Viewport utilities */
   .h-screen-safe {
-    height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    height: calc(
+      100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+    );
   }
 
   .min-h-screen-safe {
-    min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    min-height: calc(
+      100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+    );
   }
 
   /* Enhanced mobile-first visibility utilities */
@@ -461,4 +472,20 @@ All colors MUST be HSL.
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
   }
+}
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Firefox */
+html {
+  scrollbar-width: none;
+}
+
+/* IE / old Edge (if you care, which you probably shouldn't) */
+body {
+  -ms-overflow-style: none;
 }

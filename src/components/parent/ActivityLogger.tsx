@@ -45,15 +45,36 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
+import { ENV_CONFIG } from "@/lib/environment";
 
 interface Activity {
   id: number;
   family_id: number;
   date: string;
+  start_time?: string | null;
+  end_time?: string | null;
   status: "Planned" | "Ongoing" | "Completed" | "Cancelled";
   category: "Spiritual" | "Social";
   type: string;
   description: string | null;
+}
+
+interface ActivityCheckinSessionOut {
+  activity_id: number;
+  token: string;
+  checkin_url: string;
+  is_active: boolean;
+  valid_from: string;
+  valid_until: string;
+}
+
+interface ActivityAttendanceOut {
+  id: number;
+  activity_id: number;
+  attendee_name: string;
+  family_of_origin_id: number | null;
+  family_of_origin_name: string | null;
+  created_at: string;
 }
 
 interface ActivityLoggerProps {
@@ -91,6 +112,13 @@ export function ActivityLogger({
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+
+  const [isQrOpen, setIsQrOpen] = useState(false);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [checkinSession, setCheckinSession] =
+    useState<ActivityCheckinSessionOut | null>(null);
+  const [attendances, setAttendances] = useState<ActivityAttendanceOut[]>([]);
 
 
   const fetchActivities = useCallback(async () => {
@@ -133,6 +161,8 @@ export function ActivityLogger({
     try {
       const activityData = {
         ...formData,
+        start_time: formData.start_time ? formData.start_time : null,
+        end_time: formData.end_time ? formData.end_time : null,
         family_id: user.family_id,
         category, // Use the prop category
       };
@@ -189,10 +219,81 @@ export function ActivityLogger({
     }
   };
 
+  const openQr = async (activity: Activity) => {
+    if (!token) return;
+    try {
+      setSelectedActivity(activity);
+      setIsQrOpen(true);
+      setQrLoading(true);
+      setAttendances([]);
+
+      const session = await apiPost<ActivityCheckinSessionOut>(
+        `${API_ENDPOINTS.families.activities}/${activity.id}/checkin-session`,
+        {}
+      );
+      setCheckinSession(session);
+
+      const list = await apiGet<ActivityAttendanceOut[]>(
+        `${API_ENDPOINTS.families.activities}/${activity.id}/attendances`
+      );
+      setAttendances(list);
+    } catch (error: any) {
+      console.error("Error loading QR:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load QR / attendance",
+        variant: "destructive",
+      });
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copied", description: "Link copied to clipboard" });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Please copy the link manually",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadQr = async () => {
+    if (!checkinSession) return;
+    const url = `${ENV_CONFIG.apiBaseUrl}/public/checkin-qr/${checkinSession.token}`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error("Failed to download QR");
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = `checkin_${checkinSession.token}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (e: any) {
+      toast({
+        title: "Download failed",
+        description: e?.message || "Could not download QR",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleEdit = (activity: Activity) => {
     setEditingActivity(activity);
     setFormData({
       date: activity.date,
+      start_time: activity.start_time || "",
+      end_time: activity.end_time || "",
       status: activity.status,
       type: activity.type,
       description: activity.description || "",
@@ -228,6 +329,8 @@ export function ActivityLogger({
   const resetForm = () => {
     setFormData({
       date: "",
+      start_time: "",
+      end_time: "",
       status: "Planned",
       type: "",
       description: "",
@@ -263,6 +366,8 @@ export function ActivityLogger({
 
   const [formData, setFormData] = useState({
     date: "",
+    start_time: "",
+    end_time: "",
     status: "Planned" as Activity["status"],
     type: "",
     description: "",
@@ -291,6 +396,98 @@ export function ActivityLogger({
 
   return (
     <Card className="rounded-2xl shadow-sm">
+      <Dialog
+        open={isQrOpen}
+        onOpenChange={(open) => {
+          setIsQrOpen(open);
+          if (!open) {
+            setSelectedActivity(null);
+            setCheckinSession(null);
+            setAttendances([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>QR Check-in</DialogTitle>
+            <DialogDescription>
+              {selectedActivity ? `${selectedActivity.type}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {qrLoading ? (
+            <div className="text-sm text-muted-foreground">Loading…</div>
+          ) : checkinSession ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex justify-center">
+                  <img
+                    src={`${ENV_CONFIG.apiBaseUrl}/public/checkin-qr/${checkinSession.token}`}
+                    alt="Check-in QR"
+                    className="w-56 h-56 rounded-md border bg-white p-2"  
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={downloadQr}>
+                    Download
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Share link</div>
+                  <div className="flex gap-2">
+                    <Input value={checkinSession.checkin_url} readOnly />
+                    <Button
+                      variant="outline"
+                      onClick={() => copy(checkinSession.checkin_url)}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Attendance</div>
+                {attendances.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    No one has checked in yet.
+                  </div>
+                ) : (
+                  <div className="rounded-md border overflow-auto max-h-72">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/40">
+                        <tr>
+                          <th className="text-left p-2">Name</th>
+                          <th className="text-left p-2">Family</th>
+                          <th className="text-left p-2">Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {attendances.map((a) => (
+                          <tr key={a.id} className="border-t">
+                            <td className="p-2">{a.attendee_name}</td>
+                            <td className="p-2">
+                              {a.family_of_origin_name || "Visitor"}
+                            </td>
+                            <td className="p-2">
+                              {new Date(a.created_at).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">No QR available.</div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -335,6 +532,31 @@ export function ActivityLogger({
                       setFormData({ ...formData, date: e.target.value })
                     }
                   />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="start_time">Start time</Label>
+                    <Input
+                      id="start_time"
+                      type="time"
+                      value={formData.start_time}
+                      onChange={(e) =>
+                        setFormData({ ...formData, start_time: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="end_time">End time</Label>
+                    <Input
+                      id="end_time"
+                      type="time"
+                      value={formData.end_time}
+                      onChange={(e) =>
+                        setFormData({ ...formData, end_time: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -434,7 +656,11 @@ export function ActivityLogger({
             </TableHeader>
             <TableBody>
               {activities.map((activity) => (
-                <TableRow key={activity.id}>
+                <TableRow
+                  key={activity.id}
+                  className="cursor-pointer"
+                  onClick={() => openQr(activity)}
+                >
                   <TableCell>{activity.type}</TableCell>
                   <TableCell>{activity.category}</TableCell>
                   <TableCell>
@@ -478,7 +704,10 @@ export function ActivityLogger({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleEdit(activity)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(activity);
+                        }}
                         className="rounded-lg"
                       >
                         Edit
@@ -486,7 +715,10 @@ export function ActivityLogger({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(activity.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(activity.id);
+                        }}
                         className="rounded-lg"
                       >
                         Delete

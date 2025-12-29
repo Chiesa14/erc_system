@@ -38,6 +38,7 @@ import PrayerChain from "./pages/church/PrayerChain";
 import ChangePassword from "./pages/ChangePassword";
 import ActivationSuccess from "./pages/ActivationSuccess";
 import AdminDocumentManagement from "./pages/admin/AdminDocumentManagemet";
+import PublicCheckin from "./pages/PublicCheckin";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/activation-success" element={<ActivationSuccess />} />
+            <Route path="/checkin/:token" element={<PublicCheckin />} />
             <Route
               path="/parent/*"
               element={

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
@@ -8,7 +9,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -21,7 +31,14 @@ import {
   Plus,
   CalendarDays,
 } from "lucide-react";
-import { format, isSameDay } from "date-fns";
+import {
+  endOfWeek,
+  format,
+  isSameDay,
+  parseISO,
+  startOfDay,
+  startOfWeek,
+} from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -32,6 +49,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { ENV_CONFIG } from "@/lib/environment";
 
 // Define interfaces based on your backend schemas
 interface FamilyActivity {
@@ -39,12 +57,32 @@ interface FamilyActivity {
   family_id: number;
   family_name: string;
   date: string; // ISO date string
+  start_time?: string | null;
+  end_time?: string | null;
   status: "Planned" | "Ongoing" | "Completed" | "Cancelled";
   category: "Spiritual" | "Social";
   type: string;
   description: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface ActivityCheckinSessionOut {
+  activity_id: number;
+  token: string;
+  checkin_url: string;
+  is_active: boolean;
+  valid_from: string;
+  valid_until: string;
+}
+
+interface ActivityAttendanceOut {
+  id: number;
+  activity_id: number;
+  attendee_name: string;
+  family_of_origin_id: number | null;
+  family_of_origin_name: string | null;
+  created_at: string;
 }
 
 interface ActivityStats {
@@ -103,6 +141,14 @@ export default function FamilyActivitiesCalendar() {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  const [isQrOpen, setIsQrOpen] = useState(false);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [selectedActivity, setSelectedActivity] =
+    useState<FamilyActivity | null>(null);
+  const [checkinSession, setCheckinSession] =
+    useState<ActivityCheckinSessionOut | null>(null);
+  const [attendances, setAttendances] = useState<ActivityAttendanceOut[]>([]);
+
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -118,13 +164,24 @@ export default function FamilyActivitiesCalendar() {
   // Fetch activities
   useEffect(() => {
     fetchActivities();
-  }, [token, user?.family_id, statusFilter, categoryFilter, dateFilter]);
+  }, [
+    token,
+    user?.role,
+    user?.family_id,
+    statusFilter,
+    categoryFilter,
+    dateFilter,
+  ]);
 
   const fetchActivities = async () => {
-    if (!token || !user?.family_id) return;
+    if (!token || !user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
+      setError(null);
 
       // Build query parameters for filtering
       const params: Record<string, string> = {};
@@ -152,15 +209,17 @@ export default function FamilyActivitiesCalendar() {
       params.sort_by = "date";
       params.sort_order = "desc";
 
-      const response = await axios.get<FamilyActivity[]>(
-        `${baseUrl}/family/${user.family_id}`,
-        {
-          params,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const canViewAll = user.role === "Other" || user.role === "Pastor";
+      const endpoint = canViewAll
+        ? `${baseUrl}/all`
+        : `${baseUrl}/family/${user.family_id}`;
+
+      const response = await axios.get<FamilyActivity[]>(endpoint, {
+        params,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       let fetchedActivities = response.data;
 
@@ -192,17 +251,86 @@ export default function FamilyActivitiesCalendar() {
     }
   };
 
+  const openQr = async (activity: FamilyActivity) => {
+    if (!token) return;
+    try {
+      setSelectedActivity(activity);
+      setIsQrOpen(true);
+      setQrLoading(true);
+
+      const sessionRes = await axios.get<ActivityCheckinSessionOut>(
+        `${baseUrl}/${activity.id}/checkin-session`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setCheckinSession(sessionRes.data);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to load QR / attendance",
+        variant: "destructive",
+      });
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copied", description: "Link copied to clipboard" });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Please copy the link manually",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadQr = async () => {
+    if (!checkinSession) return;
+    const url = `${ENV_CONFIG.apiBaseUrl}/public/checkin-qr/${checkinSession.token}`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error("Failed to download QR");
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = `checkin_${checkinSession.token}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (e: any) {
+      toast({
+        title: "Download failed",
+        description: e?.message || "Could not download QR",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Calculate statistics
   const calculateStats = (activitiesList: FamilyActivity[]) => {
     const now = new Date();
-    const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-    const weekEnd = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+    const weekStart = startOfWeek(now);
+    const weekEnd = endOfWeek(now);
 
     const stats = {
       total: activitiesList.length,
       thisWeek: activitiesList.filter((activity) => {
-        const activityDate = new Date(activity.date);
-        return activityDate >= weekStart && activityDate <= weekEnd;
+        const activityDate = startOfDay(parseISO(activity.date));
+        return (
+          activityDate >= startOfDay(weekStart) &&
+          activityDate <= startOfDay(weekEnd)
+        );
       }).length,
       completed: activitiesList.filter(
         (activity) => activity.status === "Completed"
@@ -282,16 +410,19 @@ export default function FamilyActivitiesCalendar() {
   // Get activities for selected date
   const eventsForSelectedDate = activities.filter(
     (activity) =>
-      selectedDate && isSameDay(new Date(activity.date), selectedDate)
+      selectedDate && isSameDay(parseISO(activity.date), selectedDate)
   );
 
   // Get all activity dates for calendar highlighting
-  const activityDates = activities.map((activity) => new Date(activity.date));
+  const activityDates = activities.map((activity) => parseISO(activity.date));
 
   // Get upcoming activities
   const upcomingActivities = activities
-    .filter((activity) => new Date(activity.date) >= new Date())
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .filter(
+      (activity) =>
+        startOfDay(parseISO(activity.date)) >= startOfDay(new Date())
+    )
+    .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
     .slice(0, 5);
 
   const getCategoryColor = (category: string) => {
@@ -352,6 +483,109 @@ export default function FamilyActivitiesCalendar() {
   }
   return (
     <div className="p-6 space-y-6 bg-gradient-to-br from-background via-background to-muted/20">
+      <Dialog
+        open={isQrOpen}
+        onOpenChange={(open) => {
+          setIsQrOpen(open);
+          if (!open) {
+            setSelectedActivity(null);
+            setCheckinSession(null);
+            setAttendances([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>QR Check-in</DialogTitle>
+            <DialogDescription>
+              {selectedActivity
+                ? `${selectedActivity.type} - ${selectedActivity.family_name} family`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {qrLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading…
+            </div>
+          ) : checkinSession ? (
+            <div className="space-y-4">
+              {selectedActivity && (
+                <div className="rounded-lg border p-3 bg-muted/20 space-y-1 text-sm">
+                  <div>
+                    <span className="font-medium">Date:</span>{" "}
+                    {format(parseISO(selectedActivity.date), "MMM dd, yyyy")}
+                  </div>
+                  {(selectedActivity.start_time ||
+                    selectedActivity.end_time) && (
+                    <div>
+                      <span className="font-medium">Time:</span>{" "}
+                      {selectedActivity.start_time || ""}
+                      {selectedActivity.start_time && selectedActivity.end_time
+                        ? " - "
+                        : ""}
+                      {selectedActivity.end_time || ""}
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-medium">Status:</span>{" "}
+                    {selectedActivity.status}
+                  </div>
+                  <div>
+                    <span className="font-medium">Category:</span>{" "}
+                    {selectedActivity.category}
+                  </div>
+                  {selectedActivity.description && (
+                    <div>
+                      <span className="font-medium">Description:</span>{" "}
+                      {selectedActivity.description}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex justify-center">
+                    <img
+                      src={`${ENV_CONFIG.apiBaseUrl}/public/checkin-qr/${checkinSession.token}`}
+                      alt="Check-in QR"
+                      className="w-56 h-56 rounded-md border bg-white p-2"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={downloadQr}>
+                      Download
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">
+                      Public check-in link
+                    </div>
+                    <div className="flex gap-2">
+                      <Input value={checkinSession.checkin_url} readOnly />
+                      <Button
+                        variant="outline"
+                        onClick={() => copy(checkinSession.checkin_url)}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              No QR available.
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -522,7 +756,16 @@ export default function FamilyActivitiesCalendar() {
                 upcomingActivities.map((activity) => (
                   <div
                     key={activity.id}
-                    className="border rounded-lg p-3 space-y-2"
+                    className="border rounded-lg p-3 space-y-2 cursor-pointer hover:bg-muted/20"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openQr(activity)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openQr(activity);
+                      }
+                    }}
                   >
                     <div className="flex items-start justify-between">
                       <h4 className="font-medium text-sm">{activity.type}</h4>
@@ -533,7 +776,13 @@ export default function FamilyActivitiesCalendar() {
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <CalendarDays className="h-3 w-3" />
-                        {format(new Date(activity.date), "MMM dd, yyyy")}
+                        {format(parseISO(activity.date), "MMM dd, yyyy")}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>
+                          Family in charge: {activity.family_name} Family
+                        </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Badge
@@ -604,12 +853,14 @@ export default function FamilyActivitiesCalendar() {
                         <div className="flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4" />
                           <span>
-                            {format(new Date(activity.date), "MMM d, yyyy")}
+                            {format(parseISO(activity.date), "MMM d, yyyy")}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4" />
-                          <span>My Family - {activity.family_name} family</span>
+                          <span>
+                            Family in charge: {activity.family_name} Family
+                          </span>
                         </div>
                       </div>
 
@@ -618,6 +869,16 @@ export default function FamilyActivitiesCalendar() {
                           {activity.description}
                         </p>
                       )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openQr(activity)}
+                      >
+                        QR / Attendance
+                      </Button>
                     </div>
                   </div>
                 ))}

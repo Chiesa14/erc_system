@@ -11,6 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
   Calendar as CalendarIcon,
   Clock,
   Users,
@@ -18,7 +26,7 @@ import {
   Filter,
   Loader2,
 } from "lucide-react";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, parseISO, startOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -28,7 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { API_ENDPOINTS, apiGet, apiPost, buildApiUrl } from "@/lib/api";
+import { ENV_CONFIG } from "@/lib/environment";
 
 // Define interfaces based on backend schemas
 interface FamilyActivity {
@@ -36,12 +45,32 @@ interface FamilyActivity {
   family_id: number;
   family_name: string;
   date: string;
+  start_time?: string | null;
+  end_time?: string | null;
   status: "Planned" | "Ongoing" | "Completed" | "Cancelled";
   category: "Spiritual" | "Social";
   type: string;
   description: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface ActivityCheckinSessionOut {
+  activity_id: number;
+  token: string;
+  checkin_url: string;
+  is_active: boolean;
+  valid_from: string;
+  valid_until: string;
+}
+
+interface ActivityAttendanceOut {
+  id: number;
+  activity_id: number;
+  attendee_name: string;
+  family_of_origin_id: number | null;
+  family_of_origin_name: string | null;
+  created_at: string;
 }
 
 interface ActivityStats {
@@ -73,6 +102,14 @@ export default function ChurchCalendar() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+
+  const [isQrOpen, setIsQrOpen] = useState(false);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [selectedActivity, setSelectedActivity] =
+    useState<FamilyActivity | null>(null);
+  const [checkinSession, setCheckinSession] =
+    useState<ActivityCheckinSessionOut | null>(null);
+  const [attendances, setAttendances] = useState<ActivityAttendanceOut[]>([]);
 
   const { token, user } = useAuth();
   const { toast } = useToast();
@@ -154,6 +191,74 @@ export default function ChurchCalendar() {
     }
   };
 
+  const openQr = async (activity: FamilyActivity) => {
+    if (!token) return;
+    try {
+      setSelectedActivity(activity);
+      setIsQrOpen(true);
+      setQrLoading(true);
+      setAttendances([]);
+
+      const session = await apiPost<ActivityCheckinSessionOut>(
+        `${API_ENDPOINTS.families.activities}/${activity.id}/checkin-session`,
+        {}
+      );
+      setCheckinSession(session);
+
+      const list = await apiGet<ActivityAttendanceOut[]>(
+        `${API_ENDPOINTS.families.activities}/${activity.id}/attendances`
+      );
+      setAttendances(list);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to load QR / attendance",
+        variant: "destructive",
+      });
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copied", description: "Link copied to clipboard" });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Please copy the link manually",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadQr = async () => {
+    if (!checkinSession) return;
+    const url = `${ENV_CONFIG.apiBaseUrl}/public/checkin-qr/${checkinSession.token}`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error("Failed to download QR");
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = `checkin_${checkinSession.token}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (e: any) {
+      toast({
+        title: "Download failed",
+        description: e?.message || "Could not download QR",
+        variant: "destructive",
+      });
+    }
+  };
+
   const fetchStats = async () => {
     try {
       const params: Record<string, string> = {};
@@ -182,16 +287,19 @@ export default function ChurchCalendar() {
   // Get activities for selected date
   const eventsForSelectedDate = activities.filter(
     (activity) =>
-      selectedDate && isSameDay(new Date(activity.date), selectedDate)
+      selectedDate && isSameDay(parseISO(activity.date), selectedDate)
   );
 
   // Get all activity dates for calendar highlighting
-  const activityDates = activities.map((activity) => new Date(activity.date));
+  const activityDates = activities.map((activity) => parseISO(activity.date));
 
   // Get upcoming activities
   const upcomingActivities = activities
-    .filter((activity) => new Date(activity.date) >= new Date())
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .filter(
+      (activity) =>
+        startOfDay(parseISO(activity.date)) >= startOfDay(new Date())
+    )
+    .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
     .slice(0, 5);
 
   const getCategoryColor = (category: string) => {
@@ -252,6 +360,144 @@ export default function ChurchCalendar() {
 
   return (
     <div className="p-6 space-y-6 bg-gradient-to-br from-background via-background to-muted/20">
+      <Dialog
+        open={isQrOpen}
+        onOpenChange={(open) => {
+          setIsQrOpen(open);
+          if (!open) {
+            setSelectedActivity(null);
+            setCheckinSession(null);
+            setAttendances([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>QR Check-in</DialogTitle>
+            <DialogDescription>
+              {selectedActivity
+                ? `${selectedActivity.type} - ${selectedActivity.family_name} family`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {qrLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading…
+            </div>
+          ) : checkinSession ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2 rounded-lg border p-3 bg-muted/20 space-y-1 text-sm">
+                {selectedActivity && (
+                  <>
+                    <div>
+                      <span className="font-medium">Date:</span>{" "}
+                      {format(parseISO(selectedActivity.date), "MMM dd, yyyy")}
+                    </div>
+                    {(selectedActivity.start_time ||
+                      selectedActivity.end_time) && (
+                      <div>
+                        <span className="font-medium">Time:</span>{" "}
+                        {selectedActivity.start_time || ""}
+                        {selectedActivity.start_time &&
+                        selectedActivity.end_time
+                          ? " - "
+                          : ""}
+                        {selectedActivity.end_time || ""}
+                      </div>
+                    )}
+                    <div>
+                      <span className="font-medium">Status:</span>{" "}
+                      {selectedActivity.status}
+                    </div>
+                    <div>
+                      <span className="font-medium">Category:</span>{" "}
+                      {selectedActivity.category}
+                    </div>
+                    {selectedActivity.description && (
+                      <div>
+                        <span className="font-medium">Description:</span>{" "}
+                        {selectedActivity.description}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-center">
+                  <img
+                    src={`${ENV_CONFIG.apiBaseUrl}/public/checkin-qr/${checkinSession.token}`}
+                    alt="Check-in QR"
+                    className="w-56 h-56 rounded-md border bg-white p-2"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={downloadQr}>
+                    Download
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">
+                    Public check-in link
+                  </div>
+                  <div className="flex gap-2">
+                    <Input value={checkinSession.checkin_url} readOnly />
+                    <Button
+                      variant="outline"
+                      onClick={() => copy(checkinSession.checkin_url)}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Attendance</div>
+                {attendances.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    No one has checked in yet.
+                  </div>
+                ) : (
+                  <div className="rounded-md border overflow-auto max-h-72">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/40">
+                        <tr>
+                          <th className="text-left p-2">Name</th>
+                          <th className="text-left p-2">Family</th>
+                          <th className="text-left p-2">Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {attendances.map((a) => (
+                          <tr key={a.id} className="border-t">
+                            <td className="p-2">{a.attendee_name}</td>
+                            <td className="p-2">
+                              {a.family_of_origin_name || "Visitor"}
+                            </td>
+                            <td className="p-2">
+                              {new Date(a.created_at).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              No QR available.
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -411,12 +657,24 @@ export default function ChurchCalendar() {
                 </p>
               ) : (
                 upcomingActivities.map((activity) => (
-                  <div key={activity.id} className="p-3 bg-muted/50 rounded-lg">
+                  <div
+                    key={activity.id}
+                    className="p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openQr(activity)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openQr(activity);
+                      }
+                    }}
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h4 className="font-medium text-sm">{activity.type}</h4>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(activity.date), "MMM d, yyyy")}
+                          {format(parseISO(activity.date), "MMM d, yyyy")}
                         </p>
                         <div className="flex items-center gap-1 mt-1">
                           <Badge
@@ -466,6 +724,7 @@ export default function ChurchCalendar() {
                   <Card
                     key={activity.id}
                     className="bg-gradient-to-br from-card to-muted/5"
+                    onClick={() => openQr(activity)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -514,10 +773,22 @@ export default function ChurchCalendar() {
                           </div>
                         </div>
 
-                        <Button size="sm" variant="outline">
-                          View Details
-                          <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openQr(activity);
+                            }}
+                          >
+                            QR / Attendance
+                          </Button>
+                          {/* <Button size="sm" variant="outline">
+                            View Details
+                            <ChevronRight className="h-4 w-4 ml-2" />
+                          </Button> */}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

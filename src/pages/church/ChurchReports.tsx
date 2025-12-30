@@ -34,6 +34,7 @@ import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 import {
   Dialog,
   DialogContent,
@@ -404,7 +405,7 @@ export default function ChurchReports() {
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-full md:w-40">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -414,7 +415,7 @@ export default function ChurchReports() {
                   </SelectContent>
                 </Select>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-full md:w-40">
                     <SelectValue placeholder="Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -423,7 +424,7 @@ export default function ChurchReports() {
                   </SelectContent>
                 </Select>
                 <Select value={periodFilter} onValueChange={setPeriodFilter}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-full md:w-40">
                     <SelectValue placeholder="Period" />
                   </SelectTrigger>
                   <SelectContent>
@@ -494,7 +495,7 @@ export default function ChurchReports() {
                               </p>
                               <p>Period: N/A</p>
                               <p>
-                                Submitted: {report.uploaded_at.split("T")[0]}
+                                Submitted: {formatDate(report.uploaded_at)} ({formatRelativeTime(report.uploaded_at)})
                               </p>
                             </div>
                             <div>

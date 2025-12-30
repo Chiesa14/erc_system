@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 
 interface Family {
   id: number;
@@ -94,7 +95,7 @@ export default function YouthFamilies() {
 
   return (
     <div className="p-6 space-y-8 bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Family Groups</h1>
           <p className="text-muted-foreground">
@@ -125,12 +126,12 @@ export default function YouthFamilies() {
               className="border-0 shadow-lg bg-gradient-to-br from-card to-muted/5"
             >
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-4 min-w-0">
                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                       <Users className="h-6 w-6 text-primary" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h3 className="font-semibold text-lg">
                         {family.name} Family - {family.category}
                       </h3>
@@ -145,7 +146,7 @@ export default function YouthFamilies() {
                           {family.members.join(", ") || "No members listed"}
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
                           {family.members.length} members
@@ -155,12 +156,17 @@ export default function YouthFamilies() {
                           {family.activities.length} activities
                         </span>
                         <span>
-                          Last activity: {family.last_activity_date || "None"}
+                          Last activity:{" "}
+                          {family.last_activity_date
+                            ? `${formatDate(family.last_activity_date)} (${formatRelativeTime(
+                                family.last_activity_date
+                              )})`
+                            : "None"}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3 justify-start md:justify-end">
                     <Badge
                       variant={isActive ? "default" : "secondary"}
                       className={
@@ -263,7 +269,7 @@ export default function YouthFamilies() {
                               {activity.type}
                             </span>
                             <span className="text-xs text-muted-foreground ml-2">
-                              ({activity.date})
+                              ({formatDate(activity.date)})
                             </span>
                           </div>
                           <Badge
@@ -302,7 +308,11 @@ export default function YouthFamilies() {
                   Last Activity
                 </h4>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {selectedFamily.last_activity_date || "None"}
+                  {selectedFamily.last_activity_date
+                    ? `${formatDate(selectedFamily.last_activity_date)} (${formatRelativeTime(
+                        selectedFamily.last_activity_date
+                      )})`
+                    : "None"}
                 </p>
               </div>
             </div>

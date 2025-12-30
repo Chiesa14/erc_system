@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 
 export default function ChurchFamilies() {
   const { user, token } = useAuth();
@@ -142,9 +143,9 @@ export default function ChurchFamilies() {
   const getEngagementColor = (engagement) => {
     switch (engagement) {
       case "High":
-        return "bg-success/20 text-success-foreground border-success/40";
+        return "bg-success/20 text-success-foreground border-success/40 text-gray-500";
       case "Medium":
-        return "bg-warning/20 text-warning-foreground border-warning/40";
+        return "bg-warning/20  border-warning/40 text-gray-400";
       case "Low":
         return "bg-destructive/20 text-destructive-foreground border-destructive/40";
       default:
@@ -155,9 +156,9 @@ export default function ChurchFamilies() {
   const getBccStatusColor = (status) => {
     switch (status) {
       case "Complete":
-        return "bg-success/20 text-success-foreground border-success/40";
+        return "bg-success/20 text-success-foreground border-success/40 text-gray-500";
       case "Pending":
-        return "bg-warning/20 text-warning-foreground border-warning/40";
+        return "bg-warning/20 text-warning-foreground border-warning/40 text-gray-400";
       case "Incomplete":
         return "bg-destructive/20 text-destructive-foreground border-destructive/40";
       default:
@@ -251,7 +252,7 @@ export default function ChurchFamilies() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full md:w-40">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -264,7 +265,7 @@ export default function ChurchFamilies() {
               value={engagementFilter}
               onValueChange={setEngagementFilter}
             >
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full md:w-40">
                 <SelectValue placeholder="Engagement" />
               </SelectTrigger>
               <SelectContent>
@@ -298,8 +299,8 @@ export default function ChurchFamilies() {
                         variant="outline"
                         className={
                           family.status === "Active"
-                            ? "bg-success/20 text-success-foreground border-success/40"
-                            : "bg-warning/20 text-warning-foreground border-warning/40"
+                            ? "bg-success/20  border-success/40 text-gray-500"
+                            : "bg-warning/20  border-warning/40 text-gray-400"
                         }
                       >
                         {family.status}
@@ -326,27 +327,38 @@ export default function ChurchFamilies() {
                         )
                           .filter(([_, name]) => name && name.trim() !== "")
                           .map(([role, name], idx) => (
-                            <p key={idx}>
+                            <p key={idx} className="text-sm">
                               {role} {name}
                             </p>
                           ))}
                       </div>
-                      <div>
+                      {/* <div>
                         <p className="font-medium text-foreground">Youth:</p>
                         {family.youth.map((youth, idx) => (
                           <p key={idx}>{youth}</p>
                         ))}
-                      </div>
+                      </div> */}
                       <div>
                         <p className="font-medium text-foreground">Contact:</p>
-                        <p>{family.phone}</p>
-                        <p>{family.email}</p>
+                        <p className="text-sm">{family.phone}</p>
+                        <p className="text-sm">{family.email}</p>
                       </div>
                       <div>
                         <p className="font-medium text-foreground">Stats:</p>
-                        <p>{family.totalMembers} total members</p>
-                        <p>{family.activePrograms} active programs</p>
-                        <p>Last activity: {family.lastActivity || "None"}</p>
+                        <p className="text-sm">
+                          {family.totalMembers} total members
+                        </p>
+                        <p className="text-sm">
+                          {family.activePrograms} active programs
+                        </p>
+                        <p className="text-sm">
+                          Last activity:{" "}
+                          {family.lastActivity
+                            ? `${formatDate(
+                                family.lastActivity
+                              )} (${formatRelativeTime(family.lastActivity)})`
+                            : "None"}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -449,7 +461,7 @@ export default function ChurchFamilies() {
                               {activity.type}
                             </span>
                             <span className="text-xs text-muted-foreground ml-2">
-                              ({activity.date})
+                              ({formatDate(activity.date)})
                             </span>
                           </div>
                           <Badge
@@ -488,7 +500,11 @@ export default function ChurchFamilies() {
                   Last Activity
                 </h4>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {selectedFamily.lastActivity || "None"}
+                  {selectedFamily.lastActivity
+                    ? `${formatDate(
+                        selectedFamily.lastActivity
+                      )} (${formatRelativeTime(selectedFamily.lastActivity)})`
+                    : "None"}
                 </p>
               </div>
             </div>

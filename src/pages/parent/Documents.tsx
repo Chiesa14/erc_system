@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 import { ReportViewer } from "@/components/documents/ReportViewer";
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 
 const BASE_URL = buildApiUrl(API_ENDPOINTS.families.documents);
 
@@ -347,7 +348,7 @@ export default function Documents() {
                 {recentDocuments.map((doc) => (
                   <div
                     key={doc.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                    className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-primary/10 rounded-lg">
@@ -360,12 +361,12 @@ export default function Documents() {
                             {doc.type}
                           </Badge>
                           <span className="text-sm text-muted-foreground">
-                            {new Date(doc.uploaded_at).toLocaleDateString()}
+                            {formatDate(doc.uploaded_at)} ({formatRelativeTime(doc.uploaded_at)})
                           </span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 sm:justify-end">
                       <Badge
                         variant={
                           doc.status === "approved" ||

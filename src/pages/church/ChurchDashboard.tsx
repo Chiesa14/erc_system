@@ -37,6 +37,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, apiGet } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { formatDateTime, formatRelativeTime } from "@/lib/datetime";
 
 interface OverallStats {
   total_youth: number;
@@ -125,6 +126,7 @@ const ChurchDashboard = () => {
   );
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [dateRange, setDateRange] = useState("6months");
+  const [lastUpdated, setLastUpdated] = useState<string>(new Date().toISOString());
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -141,6 +143,7 @@ const ChurchDashboard = () => {
       setGenderDistribution(data.gender_distribution);
       setMonthlyProgress(data.monthly_progress);
       setAgeDistribution(data.age_distribution);
+      setLastUpdated(data.last_updated);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       toast({
@@ -214,6 +217,9 @@ const ChurchDashboard = () => {
             </div>
             <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1">
               Guiding families and youth in spiritual growth
+            </p>
+            <p className="text-2xs xs:text-xs md:text-sm text-muted-foreground mt-1">
+              Last updated: {formatDateTime(lastUpdated)} ({formatRelativeTime(lastUpdated)})
             </p>
           </div>
 

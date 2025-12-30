@@ -38,6 +38,7 @@ import {
   Line,
 } from "recharts";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { formatDate, formatMonthShort, formatRelativeTime } from "@/lib/datetime";
 
 // Interface for the FamilyStats response
 interface AgeDistribution {
@@ -67,28 +68,6 @@ interface RecentActivity {
   description: string;
   date: string;
   status: string;
-}
-
-function formatRelativeDate(inputDate: string): string {
-  const date = new Date(inputDate);
-  const now = new Date();
-  const diffTime = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) {
-    return "Today";
-  } else if (diffDays === 1) {
-    return "Yesterday";
-  } else if (diffDays < 7) {
-    return `${diffDays} days ago`;
-  } else if (diffDays < 14) {
-    return "Last week";
-  } else {
-    return date.toLocaleDateString("default", {
-      month: "short",
-      day: "numeric",
-    });
-  }
 }
 
 export default function ParentDashboard() {
@@ -158,8 +137,7 @@ export default function ParentDashboard() {
         setRecentActivities(
           response.data.map((act: any) => ({
             description: act.description,
-            date: formatRelativeDate(act.date),
-
+            date: act.date,
             status: act.status,
           }))
         );
@@ -240,7 +218,7 @@ export default function ParentDashboard() {
     ? Object.entries(stats.activity_trends)
         .sort()
         .map(([month, trend]) => ({
-          month: new Date(month).toLocaleString("default", { month: "short" }),
+          month: formatMonthShort(month),
           spiritual: trend.spiritual,
           social: trend.social,
         }))
@@ -251,7 +229,7 @@ export default function ParentDashboard() {
       ? Object.entries(stats.activity_trends)
           .sort()
           .map(([month, trend]) => ({
-            name: new Date(month).toLocaleString("default", { month: "short" }),
+            name: formatMonthShort(month),
             engagement: Math.min(
               Math.round(
                 ((trend.spiritual + trend.social) /
@@ -630,7 +608,7 @@ export default function ParentDashboard() {
                         {activity.description}
                       </h4>
                       <p className="text-2xs xs:text-xs md:text-sm text-muted-foreground truncate">
-                        {activity.date}
+                        {formatDate(activity.date)} ({formatRelativeTime(activity.date)})
                       </p>
                     </div>
                   </div>

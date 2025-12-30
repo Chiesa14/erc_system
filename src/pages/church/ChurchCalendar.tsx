@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
@@ -22,7 +23,6 @@ import {
   Calendar as CalendarIcon,
   Clock,
   Users,
-  ChevronRight,
   Filter,
   Loader2,
 } from "lucide-react";
@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { API_ENDPOINTS, apiGet, apiPost, buildApiUrl } from "@/lib/api";
 import { ENV_CONFIG } from "@/lib/environment";
+import { formatDate, formatRelativeTime, formatTime } from "@/lib/datetime";
 
 // Define interfaces based on backend schemas
 interface FamilyActivity {
@@ -393,7 +394,8 @@ export default function ChurchCalendar() {
                   <>
                     <div>
                       <span className="font-medium">Date:</span>{" "}
-                      {format(parseISO(selectedActivity.date), "MMM dd, yyyy")}
+                      {formatDate(selectedActivity.date)} (
+                      {formatRelativeTime(selectedActivity.date)})
                     </div>
                     {(selectedActivity.start_time ||
                       selectedActivity.end_time) && (
@@ -480,7 +482,8 @@ export default function ChurchCalendar() {
                               {a.family_of_origin_name || "Visitor"}
                             </td>
                             <td className="p-2">
-                              {new Date(a.created_at).toLocaleString()}
+                              {formatTime(a.created_at)} (
+                              {formatRelativeTime(a.created_at)})
                             </td>
                           </tr>
                         ))}
@@ -577,9 +580,9 @@ export default function ChurchCalendar() {
         </Card>
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -592,7 +595,7 @@ export default function ChurchCalendar() {
         </Select>
 
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
@@ -603,7 +606,7 @@ export default function ChurchCalendar() {
         </Select>
 
         <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="All Dates" />
           </SelectTrigger>
           <SelectContent>
@@ -615,9 +618,9 @@ export default function ChurchCalendar() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Calendar */}
-        <Card className="lg:col-span-2 border-0 shadow-lg">
+        <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5 text-primary" />
@@ -632,7 +635,7 @@ export default function ChurchCalendar() {
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
-              numberOfMonths={2}
+              numberOfMonths={1}
               modifiers={modifiers}
               modifiersStyles={modifiersStyles}
               className="rounded-md border max-w-full [&_table]:w-full [&_td]:text-center [&_th]:text-center [&_.rdp-cell]:p-2 [&_.rdp-day]:w-full [&_.rdp-day]:h-10 [&_.rdp-day]:text-sm [&_.rdp-months]:flex [&_.rdp-months]:gap-20 [&_.rdp-months]:justify-center [&_.rdp-month]:flex-shrink-0 pointer-events-auto"
@@ -659,7 +662,7 @@ export default function ChurchCalendar() {
                 upcomingActivities.map((activity) => (
                   <div
                     key={activity.id}
-                    className="p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70"
+                    className="border rounded-lg p-3 space-y-2 cursor-pointer hover:bg-muted/20"
                     role="button"
                     tabIndex={0}
                     onClick={() => openQr(activity)}
@@ -671,27 +674,39 @@ export default function ChurchCalendar() {
                     }}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">{activity.type}</h4>
-                        <p className="text-xs text-muted-foreground">
-                          {format(parseISO(activity.date), "MMM d, yyyy")}
-                        </p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Badge
-                            variant="outline"
-                            className={getCategoryColor(activity.category)}
-                          >
-                            {activity.category}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className={getStatusColor(activity.status)}
-                          >
-                            {activity.status}
-                          </Badge>
-                        </div>
+                      <h4 className="font-medium text-sm">{activity.type}</h4>
+                      <Badge className={getCategoryColor(activity.category)}>
+                        {activity.category}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <CalendarIcon className="h-3 w-3" />
+                        {formatDate(activity.date)} (
+                        {formatRelativeTime(activity.date)})
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>
+                          Family in charge: {activity.family_name} Family
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Badge
+                          className={getStatusColor(activity.status)}
+                          variant="outline"
+                        >
+                          {activity.status}
+                        </Badge>
                       </div>
                     </div>
+
+                    {activity.description && (
+                      <p className="text-xs text-muted-foreground">
+                        {activity.description}
+                      </p>
+                    )}
                   </div>
                 ))
               )}
@@ -706,7 +721,7 @@ export default function ChurchCalendar() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5 text-primary" />
-              Activities for {format(selectedDate, "MMMM d, yyyy")}
+              Activities for {formatDate(selectedDate)}
             </CardTitle>
             <CardDescription>
               {eventsForSelectedDate.length} activity(ies) scheduled for this
@@ -753,10 +768,8 @@ export default function ChurchCalendar() {
                               <div className="flex items-center gap-2">
                                 <CalendarIcon className="h-4 w-4" />
                                 <span>
-                                  {format(
-                                    new Date(activity.date),
-                                    "MMM d, yyyy"
-                                  )}
+                                  {formatDate(activity.date)} (
+                                  {formatRelativeTime(activity.date)})
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">

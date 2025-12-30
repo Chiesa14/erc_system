@@ -668,7 +668,7 @@ export default function Delegation() {
               delegatedAccess.map((delegate, index) => (
                 <div
                   key={delegate.id}
-                  className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-2 bg-primary/10 rounded-lg">
@@ -689,7 +689,7 @@ export default function Delegation() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3 sm:justify-end">
                     <div className="flex flex-wrap gap-1">
                       {delegate.permissions.map((permission, idx) => (
                         <Badge

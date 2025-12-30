@@ -40,29 +40,7 @@ import {
   apiPost,
   apiDelete,
 } from "@/lib/api";
-
-// Utility function to format dates
-const formatDate = (date) => {
-  const d = new Date(date);
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return `${months[d.getMonth()]} ${d
-    .getDate()
-    .toString()
-    .padStart(2, "0")}, ${d.getFullYear()}`;
-};
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 
 const getAnnouncementTypeColor = (type: any) => {
   switch (type) {
@@ -672,11 +650,12 @@ export default function YouthAnnouncements() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+      <div className="flex gap-1 p-1 bg-muted rounded-lg w-full sm:w-fit">
         <Button
           variant={selectedTab === "announcements" ? "default" : "ghost"}
           size="sm"
           onClick={() => setSelectedTab("announcements")}
+          className="flex-1 sm:flex-none"
         >
           <Megaphone className="h-4 w-4 mr-2" />
           Announcements
@@ -685,6 +664,7 @@ export default function YouthAnnouncements() {
           variant={selectedTab === "documents" ? "default" : "ghost"}
           size="sm"
           onClick={() => setSelectedTab("documents")}
+          className="flex-1 sm:flex-none"
         >
           <FileText className="h-4 w-4 mr-2" />
           Documents
@@ -693,7 +673,7 @@ export default function YouthAnnouncements() {
 
       {/* Search and Filter Bar for Documents */}
       {selectedTab === "documents" && (
-        <div className="flex gap-4 items-center">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -704,7 +684,7 @@ export default function YouthAnnouncements() {
             />
           </div>
           <Select value={mimeTypeFilter} onValueChange={setMimeTypeFilter}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
@@ -759,7 +739,7 @@ export default function YouthAnnouncements() {
                         <span>By {user?.full_name || "Unknown"}</span>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {formatDate(announcement.created_at)}
+                          {formatDate(announcement.created_at)} ({formatRelativeTime(announcement.created_at)})
                         </div>
                         <div className="flex items-center gap-1">
                           <Eye className="h-3 w-3" />
@@ -828,23 +808,25 @@ export default function YouthAnnouncements() {
                 documents.map((doc) => (
                   <div
                     key={doc.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-lg"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                         <FileText className="h-5 w-5 text-primary" />
                       </div>
-                      <div>
-                        <h4 className="font-medium">{doc.name}</h4>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <div className="min-w-0">
+                        <h4 className="font-medium truncate">{doc.name}</h4>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm text-muted-foreground">
                           <span>{formatFileSize(doc.size)}</span>
-                          <span>•</span>
-                          <span>Uploaded {formatDate(doc.uploaded_at)}</span>
-                          <span>•</span>
+                          <span className="hidden sm:inline">•</span>
+                          <span>
+                            Uploaded {formatDate(doc.uploaded_at)} ({formatRelativeTime(doc.uploaded_at)})
+                          </span>
+                          <span className="hidden sm:inline">•</span>
                           <span>{doc.downloads} downloads</span>
                           {doc.is_flyer && (
                             <>
-                              <span>•</span>
+                              <span className="hidden sm:inline">•</span>
                               <Badge variant="secondary" className="text-xs">
                                 Flyer
                               </Badge>
@@ -858,7 +840,7 @@ export default function YouthAnnouncements() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 justify-end">
                       <Button
                         variant="outline"
                         size="sm"

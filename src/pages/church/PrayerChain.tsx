@@ -42,6 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { formatLongDate, formatWeekday } from "@/lib/datetime";
 
 // Enums
 enum ActivityStatusEnum {
@@ -302,11 +303,13 @@ export default function PrayerChain() {
 
   // Get today's schedule
   const getTodaySchedule = () => {
-    const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+    const today = formatWeekday(new Date());
     return prayerChains.filter((chain) =>
       chain.schedules.some((s) => s.day === today)
     );
   };
+
+  const getTodayWeekday = () => formatWeekday(new Date());
 
   // Get status color (simplified, as backend doesn't provide status)
   const getStatusColor = (chain: PrayerChain) => {
@@ -554,9 +557,7 @@ export default function PrayerChain() {
                             .filter(
                               (s) =>
                                 s.day ===
-                                new Date().toLocaleDateString("en-US", {
-                                  weekday: "long",
-                                })
+                                getTodayWeekday()
                             )
                             .map((s) => `${s.start_time} - ${s.end_time}`)
                             .join(", ")}
@@ -593,7 +594,7 @@ export default function PrayerChain() {
                   />
                 </div>
                 <Select value={selectedDay} onValueChange={setSelectedDay}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-full md:w-40">
                     <SelectValue placeholder="Filter by day" />
                   </SelectTrigger>
                   <SelectContent>
@@ -702,12 +703,7 @@ export default function PrayerChain() {
               </CardTitle>
               <CardDescription>
                 Families committed to prayer today -{" "}
-                {new Date().toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+                {formatLongDate(new Date())}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -727,9 +723,7 @@ export default function PrayerChain() {
                     const todaySchedule = chain.schedules.filter(
                       (s) =>
                         s.day ===
-                        new Date().toLocaleDateString("en-US", {
-                          weekday: "long",
-                        })
+                        getTodayWeekday()
                     );
                     return (
                       <div

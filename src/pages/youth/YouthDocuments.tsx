@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 
 // Define interface for document data based on SharedDocumentOut schema
 interface Document {
@@ -82,14 +83,6 @@ const getFileType = (mimeType: string | null): string => {
   if (!mimeType) return "FILE";
   const type = mimeType.split("/")[1]?.toUpperCase() || "FILE";
   return type.split(";")[0];
-};
-
-const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 };
 
 export default function YouthDocuments() {
@@ -328,7 +321,9 @@ export default function YouthDocuments() {
                               : "Uploaded by system"}
                           </span>
                           <span>•</span>
-                          <span>{formatDate(doc.uploaded_at)}</span>
+                          <span>
+                            {formatDate(doc.uploaded_at)} ({formatRelativeTime(doc.uploaded_at)})
+                          </span>
                           <span>•</span>
                           <span>{doc.downloads} downloads</span>
                         </div>

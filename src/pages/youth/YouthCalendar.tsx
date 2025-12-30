@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import axios from "axios";
@@ -50,6 +51,7 @@ import {
 } from "@/components/ui/select";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 import { ENV_CONFIG } from "@/lib/environment";
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 
 // Define interfaces based on your backend schemas
 interface FamilyActivity {
@@ -153,7 +155,7 @@ export default function FamilyActivitiesCalendar() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
-  const [viewMode, setViewMode] = useState("calendar");
+  const [viewMode, setViewMode] = useState("single");
 
   const { token, user } = useAuth();
   const { toast } = useToast();
@@ -515,7 +517,8 @@ export default function FamilyActivitiesCalendar() {
                 <div className="rounded-lg border p-3 bg-muted/20 space-y-1 text-sm">
                   <div>
                     <span className="font-medium">Date:</span>{" "}
-                    {format(parseISO(selectedActivity.date), "MMM dd, yyyy")}
+                    {formatDate(selectedActivity.date)} (
+                    {formatRelativeTime(selectedActivity.date)})
                   </div>
                   {(selectedActivity.start_time ||
                     selectedActivity.end_time) && (
@@ -613,9 +616,9 @@ export default function FamilyActivitiesCalendar() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -628,7 +631,7 @@ export default function FamilyActivitiesCalendar() {
         </Select>
 
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
@@ -639,7 +642,7 @@ export default function FamilyActivitiesCalendar() {
         </Select>
 
         <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="All Dates" />
           </SelectTrigger>
           <SelectContent>
@@ -710,9 +713,9 @@ export default function FamilyActivitiesCalendar() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Calendar */}
-        <Card className="lg:col-span-2 border-0 shadow-lg">
+        <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5 text-primary" />
@@ -776,7 +779,8 @@ export default function FamilyActivitiesCalendar() {
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <CalendarDays className="h-3 w-3" />
-                        {format(parseISO(activity.date), "MMM dd, yyyy")}
+                        {formatDate(activity.date)} (
+                        {formatRelativeTime(activity.date)})
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
@@ -812,7 +816,7 @@ export default function FamilyActivitiesCalendar() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5 text-primary" />
-              Activities for {format(selectedDate, "MMMM dd, yyyy")}
+              Activities for {formatDate(selectedDate)}
             </CardTitle>
             <CardDescription>
               {eventsForSelectedDate.length} activity(ies) scheduled for this
@@ -853,7 +857,8 @@ export default function FamilyActivitiesCalendar() {
                         <div className="flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4" />
                           <span>
-                            {format(parseISO(activity.date), "MMM d, yyyy")}
+                            {formatDate(activity.date)} (
+                            {formatRelativeTime(activity.date)})
                           </span>
                         </div>
                         <div className="flex items-center gap-2">

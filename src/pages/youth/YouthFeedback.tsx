@@ -27,11 +27,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MessageSquare, Plus, Star, Bell, Clock, Reply } from "lucide-react";
-import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -574,7 +574,7 @@ export default function YouthFeedback() {
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3 flex-shrink-0" />
                     <span>
-                      {format(new Date(feedback.date), "MMM dd, yyyy")}
+                      {formatDate(feedback.date)} ({formatRelativeTime(feedback.date)})
                     </span>
                   </div>
                   <span className="hidden xs:inline">•</span>
@@ -605,7 +605,7 @@ export default function YouthFeedback() {
                             {reply.author}
                           </div>
                           <div className="text-2xs xs:text-xs text-muted-foreground">
-                            {format(new Date(reply.date), "MMM dd, yyyy")}
+                            {formatDate(reply.date)} ({formatRelativeTime(reply.date)})
                           </div>
                         </div>
                         <p className="text-sm text-foreground leading-relaxed">

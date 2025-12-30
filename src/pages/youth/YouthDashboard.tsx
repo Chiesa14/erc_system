@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, apiGet } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { NavLink } from "react-router-dom";
+import { formatDateTime, formatRelativeTime } from "@/lib/datetime";
 
 // Types based on the backend schemas
 interface QuickAction {
@@ -427,7 +428,7 @@ export default function YouthDashboard() {
         <div className="text-center">
           <p className="text-xs text-muted-foreground">
             Last updated:{" "}
-            {new Date(dashboardData.last_updated).toLocaleString()}
+            {formatDateTime(dashboardData.last_updated)} ({formatRelativeTime(dashboardData.last_updated)})
           </p>
           <Button
             variant="ghost"

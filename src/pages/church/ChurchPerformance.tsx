@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, apiGet } from "@/lib/api";
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 
 // TypeScript interfaces for the analytics data
 interface OverallMetrics {
@@ -293,8 +294,7 @@ export default function ChurchPerformance() {
           </p>
           {startDate && endDate && (
             <p className="text-sm text-muted-foreground mt-1">
-              Period: {new Date(startDate).toLocaleDateString()} -{" "}
-              {new Date(endDate).toLocaleDateString()}
+              Period: {formatDate(startDate)} - {formatDate(endDate)}
             </p>
           )}
         </div>
@@ -506,7 +506,7 @@ export default function ChurchPerformance() {
                         </div>
                         <p className="text-sm text-muted-foreground">
                           Last active:{" "}
-                          {new Date(family.last_active).toLocaleDateString()}
+                          {formatDate(family.last_active)} ({formatRelativeTime(family.last_active)})
                         </p>
                       </div>
 

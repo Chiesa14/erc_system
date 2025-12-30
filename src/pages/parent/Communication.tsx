@@ -351,7 +351,7 @@ const Communication = () => {
               ].map((event, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                  className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-muted/30 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -374,7 +374,7 @@ const Communication = () => {
                       </p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="self-start sm:self-auto">
                     View Details
                   </Button>
                 </div>

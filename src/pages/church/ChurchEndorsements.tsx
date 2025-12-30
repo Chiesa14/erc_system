@@ -7,6 +7,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -416,7 +419,9 @@ export default function ChurchEndorsements() {
                             <p className="font-medium text-foreground">
                               Timeline:
                             </p>
-                            <p>Requested: {endorsement.requestDate}</p>
+                            <p>
+                              Requested: {formatDate(endorsement.requestDate)} ({formatRelativeTime(endorsement.requestDate)})
+                            </p>
                             <p>
                               Completion: {endorsement.completionPercentage}%
                             </p>

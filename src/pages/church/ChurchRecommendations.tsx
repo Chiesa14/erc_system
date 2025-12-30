@@ -44,13 +44,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
-
-// Helper function to format dates
-const formatDate = (dateString) => {
-  return format(new Date(dateString), "MMM dd, yyyy");
-};
+import { formatDate, formatRelativeTime } from "@/lib/datetime";
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -677,7 +672,7 @@ const ChurchRecommendations = () => {
                           </div>
                           <p className="text-sm text-muted-foreground">
                             {program.family_name} family • Submitted{" "}
-                            {formatDate(program.submitted_date)}
+                            {formatDate(program.submitted_date)} ({formatRelativeTime(program.submitted_date)})
                           </p>
                           <p className="text-sm text-foreground">
                             {program.description}
@@ -1047,11 +1042,11 @@ const ChurchRecommendations = () => {
                                   ? item.title
                                   : item.subject || "Comment"}
                               </h4>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                                 <span>{item.family_name} family</span>
                                 <span>•</span>
                                 <span>
-                                  {formatDate(item.created_date || item.date)}
+                                  {formatDate(item.created_date || item.date)} ({formatRelativeTime(item.created_date || item.date)})
                                 </span>
                                 <span>•</span>
                                 <Badge variant="outline" className="text-xs">
@@ -1316,13 +1311,13 @@ const ChurchRecommendations = () => {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                     <Label>Filter by status:</Label>
                     <Select
                       value={filterStatus}
                       onValueChange={setFilterStatus}
                     >
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1366,14 +1361,14 @@ const ChurchRecommendations = () => {
                               </Badge>
                             )}
                           </div>
-                          <CardDescription className="flex items-center gap-2 text-sm">
+                          <CardDescription className="flex flex-wrap items-center gap-2 text-sm">
                             <span>{feedback.family_name} family</span>
                             <span>•</span>
                             <span>By {feedback.author}</span>
                             <span>•</span>
                             <Clock className="h-3 w-3" />
                             <span>
-                              {format(new Date(feedback.date), "MMM dd, yyyy")}
+                              {formatDate(feedback.date)} ({formatRelativeTime(feedback.date)})
                             </span>
                             <span>•</span>
                             {renderStars(feedback.rating)}
@@ -1394,10 +1389,7 @@ const ChurchRecommendations = () => {
                                     {reply.author}
                                   </div>
                                   <div className="text-xs text-muted-foreground">
-                                    {format(
-                                      new Date(reply.date),
-                                      "MMM dd, yyyy"
-                                    )}
+                                    {formatDate(reply.date)} ({formatRelativeTime(reply.date)})
                                   </div>
                                   <p>{reply.content}</p>
                                 </div>
@@ -1405,7 +1397,7 @@ const ChurchRecommendations = () => {
                             </div>
                           )}
                           {/* Action Buttons */}
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <Button
                               variant="outline"
                               size="sm"
@@ -1430,7 +1422,7 @@ const ChurchRecommendations = () => {
                                 handleUpdateStatus(feedback.id, value)
                               }
                             >
-                              <SelectTrigger className="w-[140px]">
+                              <SelectTrigger className="w-full sm:w-[140px]">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>

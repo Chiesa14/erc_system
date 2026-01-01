@@ -11,7 +11,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Users,
   GraduationCap,
@@ -39,6 +49,7 @@ import {
 } from "recharts";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 import { formatDate, formatMonthShort, formatRelativeTime } from "@/lib/datetime";
+import type { DateRange } from "react-day-picker";
 
 // Interface for the FamilyStats response
 interface AgeDistribution {
@@ -70,6 +81,32 @@ interface RecentActivity {
   status: string;
 }
 
+type ActivityTimePreset =
+  | "current_month"
+  | "current_week"
+  | "current_year"
+  | "last_year"
+  | "last_month"
+  | "custom";
+
+interface ActivityTypeStatusSummary {
+  type: string;
+  planned: number;
+  ongoing: number;
+  completed: number;
+}
+
+function toYYYYMMDD(d: Date): string {
+  const utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  return utc.toISOString().slice(0, 10);
+}
+
+function addDays(d: Date, days: number): Date {
+  const next = new Date(d);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
 export default function ParentDashboard() {
   const { user, token, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -77,6 +114,16 @@ export default function ParentDashboard() {
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>(
     []
   );
+  const [activityTimePreset, setActivityTimePreset] =
+    useState<ActivityTimePreset>("current_month");
+  const [activityCustomRange, setActivityCustomRange] = useState<
+    DateRange | undefined
+  >();
+  const [activityTypeStatusSummary, setActivityTypeStatusSummary] = useState<
+    ActivityTypeStatusSummary[]
+  >([]);
+  const [activityTypeStatusLoading, setActivityTypeStatusLoading] =
+    useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,6 +164,77 @@ export default function ParentDashboard() {
       fetchFamilyStats();
     }
   }, [user, token, authLoading, toast]);
+
+  useEffect(() => {
+    const fetchActivityTypeStatusSummary = async () => {
+      if (!token) return;
+
+      const today = new Date();
+      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+      let dateFrom: Date | undefined;
+      let dateTo: Date | undefined;
+
+      if (activityTimePreset === "current_month") {
+        dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+        dateTo = startOfToday;
+      } else if (activityTimePreset === "current_week") {
+        const day = startOfToday.getDay();
+        const mondayIndex = day === 0 ? 6 : day - 1;
+        dateFrom = addDays(startOfToday, -mondayIndex);
+        dateTo = startOfToday;
+      } else if (activityTimePreset === "current_year") {
+        dateFrom = new Date(today.getFullYear(), 0, 1);
+        dateTo = startOfToday;
+      } else if (activityTimePreset === "last_year") {
+        const lastYear = today.getFullYear() - 1;
+        dateFrom = new Date(lastYear, 0, 1);
+        dateTo = new Date(lastYear, 11, 31);
+      } else if (activityTimePreset === "last_month") {
+        const firstOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastOfLastMonth = addDays(firstOfThisMonth, -1);
+        dateFrom = new Date(lastOfLastMonth.getFullYear(), lastOfLastMonth.getMonth(), 1);
+        dateTo = lastOfLastMonth;
+      } else if (activityTimePreset === "custom") {
+        if (!activityCustomRange?.from || !activityCustomRange?.to) {
+          setActivityTypeStatusSummary([]);
+          return;
+        }
+        dateFrom = activityCustomRange.from;
+        dateTo = activityCustomRange.to;
+      }
+
+      if (!dateFrom || !dateTo) return;
+
+      try {
+        setActivityTypeStatusLoading(true);
+        const response = await axios.get(
+          buildApiUrl(`${API_ENDPOINTS.families.activities}/type-status-summary`, {
+            date_from: toYYYYMMDD(dateFrom),
+            date_to: toYYYYMMDD(dateTo),
+          }),
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        setActivityTypeStatusSummary(response.data);
+      } catch (err) {
+        console.error("Error fetching activity type status summary:", err);
+        toast({
+          title: "Error",
+          description: "Unable to load activity trends",
+          variant: "destructive",
+        });
+      } finally {
+        setActivityTypeStatusLoading(false);
+      }
+    };
+
+    if (!authLoading) {
+      fetchActivityTypeStatusSummary();
+    }
+  }, [activityCustomRange, activityTimePreset, authLoading, toast, token]);
 
   // Fetch recent activities
   useEffect(() => {
@@ -214,15 +332,7 @@ export default function ParentDashboard() {
       ].filter((entry) => entry.value > 0) // Filter out age ranges with 0 value
     : [];
 
-  const activityData = stats?.activity_trends
-    ? Object.entries(stats.activity_trends)
-        .sort()
-        .map(([month, trend]) => ({
-          month: formatMonthShort(month),
-          spiritual: trend.spiritual,
-          social: trend.social,
-        }))
-    : [];
+  const activityTypeStatusData = activityTypeStatusSummary;
 
   const engagementData =
     stats?.activity_trends && stats.total_members
@@ -382,105 +492,82 @@ export default function ParentDashboard() {
       </div>
 
       {/* Enhanced Mobile-First Charts Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 xs:gap-4 md:gap-6">
+      <div className="grid grid-cols-1 gap-3 xs:gap-4 md:gap-6">
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 touch:shadow-xl">
           <CardHeader className="p-3 xs:p-4 md:p-6">
-            <CardTitle className="flex items-center gap-2 xs:gap-3 text-sm xs:text-base md:text-lg">
-              <div className="p-1.5 xs:p-2 bg-primary/10 rounded-lg touch:p-3 flex-shrink-0">
-                <Users className="h-4 w-4 xs:h-4 xs:w-4 md:h-5 md:w-5 text-primary" />
-              </div>
-              <span className="truncate">Family Age Distribution</span>
-            </CardTitle>
-            <CardDescription className="text-2xs xs:text-xs md:text-sm text-muted-foreground">
-              Age groups within your family members
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 xs:p-4 md:p-6 pt-0">
-            {membersByAge.length > 0 ? (
-              <div className="w-full overflow-hidden">
-                <ResponsiveContainer
-                  width="100%"
-                  height={200}
-                  className="xs:h-52 md:h-64 lg:h-72"
-                >
-                  <PieChart>
-                    <Pie
-                      data={membersByAge}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        window.innerWidth > 640
-                          ? `${name} ${(percent * 100).toFixed(0)}%`
-                          : `${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={
-                        window.innerWidth < 640
-                          ? 50
-                          : window.innerWidth < 768
-                          ? 60
-                          : 70
-                      }
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {membersByAge.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                        fontSize: window.innerWidth < 640 ? "12px" : "14px",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-48 xs:h-52 md:h-64 text-center text-muted-foreground text-sm xs:text-base">
-                <div>
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No age distribution data available</p>
+            <div className="flex flex-col gap-3 xs:flex-row xs:items-center xs:justify-between">
+              <CardTitle className="flex items-center gap-2 xs:gap-3 text-sm xs:text-base md:text-lg">
+                <div className="p-1.5 xs:p-2 bg-accent/10 rounded-lg touch:p-3 flex-shrink-0">
+                  <Activity className="h-4 w-4 xs:h-4 xs:w-4 md:h-5 md:w-5 text-accent" />
                 </div>
+                <span className="truncate">Activity Trends</span>
+              </CardTitle>
+              <div className="w-full xs:w-[240px]">
+                <Select
+                  value={activityTimePreset}
+                  onValueChange={(v) => setActivityTimePreset(v as ActivityTimePreset)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="current_month">Current Month</SelectItem>
+                    <SelectItem value="current_week">Current Week</SelectItem>
+                    <SelectItem value="current_year">Current Year</SelectItem>
+                    <SelectItem value="last_year">Last Year</SelectItem>
+                    <SelectItem value="last_month">Last Month</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 touch:shadow-xl">
-          <CardHeader className="p-3 xs:p-4 md:p-6">
-            <CardTitle className="flex items-center gap-2 xs:gap-3 text-sm xs:text-base md:text-lg">
-              <div className="p-1.5 xs:p-2 bg-accent/10 rounded-lg touch:p-3 flex-shrink-0">
-                <Activity className="h-4 w-4 xs:h-4 xs:w-4 md:h-5 md:w-5 text-accent" />
-              </div>
-              <span className="truncate">Activity Trends</span>
-            </CardTitle>
+            </div>
             <CardDescription className="text-2xs xs:text-xs md:text-sm text-muted-foreground">
-              Monthly spiritual and social activities
+              Activity types grouped by status
             </CardDescription>
           </CardHeader>
           <CardContent className="p-3 xs:p-4 md:p-6 pt-0">
+            {activityTimePreset === "custom" ? (
+              <div className="mb-3">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full xs:w-auto justify-start">
+                      {activityCustomRange?.from && activityCustomRange?.to
+                        ? `${formatDate(activityCustomRange.from)} - ${formatDate(activityCustomRange.to)}`
+                        : "Select date range"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="range"
+                      numberOfMonths={2}
+                      selected={activityCustomRange}
+                      onSelect={setActivityCustomRange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            ) : null}
+
             <div className="w-full overflow-x-auto">
               <ResponsiveContainer
                 width="100%"
-                height={200}
-                className="xs:h-52 md:h-64 lg:h-72 min-w-[300px]"
+                height={260}
+                className="xs:h-[280px] md:h-[340px] lg:h-[380px] min-w-[600px]"
               >
                 <BarChart
-                  data={activityData}
-                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                  data={activityTypeStatusData}
+                  margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
                 >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(var(--muted))"
-                  />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
                   <XAxis
-                    dataKey="month"
+                    dataKey="type"
                     fontSize={window.innerWidth < 640 ? 10 : 12}
                     tick={{ fill: "hsl(var(--muted-foreground))" }}
+                    interval={0}
+                    angle={-15}
+                    textAnchor="end"
+                    height={60}
                   />
                   <YAxis
                     fontSize={window.innerWidth < 640 ? 10 : 12}
@@ -495,20 +582,33 @@ export default function ParentDashboard() {
                     }}
                   />
                   <Bar
-                    dataKey="spiritual"
-                    fill="hsl(var(--primary))"
+                    dataKey="completed"
+                    stackId="a"
+                    fill="hsl(142 71% 45%)"
+                    name="Completed"
                     radius={[2, 2, 0, 0]}
-                    name="Spiritual"
                   />
                   <Bar
-                    dataKey="social"
-                    fill="hsl(var(--accent))"
+                    dataKey="ongoing"
+                    stackId="a"
+                    fill="hsl(48 96% 53%)"
+                    name="Ongoing"
                     radius={[2, 2, 0, 0]}
-                    name="Social"
+                  />
+                  <Bar
+                    dataKey="planned"
+                    stackId="a"
+                    fill="hsl(330 81% 60%)"
+                    name="Planned"
+                    radius={[2, 2, 0, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>
             </div>
+
+            {activityTypeStatusLoading ? (
+              <div className="mt-2 text-xs text-muted-foreground">Loading trends…</div>
+            ) : null}
           </CardContent>
         </Card>
       </div>
@@ -580,7 +680,66 @@ export default function ParentDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="xl:col-span-2 border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 touch:shadow-xl">
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 touch:shadow-xl xl:col-span-1">
+          <CardHeader className="p-3 xs:p-4 md:p-6">
+            <CardTitle className="flex items-center gap-2 xs:gap-3 text-sm xs:text-base md:text-lg">
+              <div className="p-1.5 xs:p-2 bg-primary/10 rounded-lg touch:p-3 flex-shrink-0">
+                <Users className="h-4 w-4 xs:h-4 xs:w-4 md:h-5 md:w-5 text-primary" />
+              </div>
+              <span className="truncate">Family Age Distribution</span>
+            </CardTitle>
+            <CardDescription className="text-2xs xs:text-xs md:text-sm text-muted-foreground">
+              Age groups within your family members
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-3 xs:p-4 md:p-6 pt-0">
+            {membersByAge.length > 0 ? (
+              <div className="w-full overflow-hidden">
+                <ResponsiveContainer width="100%" height={160} className="xs:h-44 md:h-48 lg:h-52">
+                  <PieChart>
+                    <Pie
+                      data={membersByAge}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) =>
+                        window.innerWidth > 640
+                          ? `${name} ${(percent * 100).toFixed(0)}%`
+                          : `${(percent * 100).toFixed(0)}%`
+                      }
+                      outerRadius={
+                        window.innerWidth < 640 ? 45 : window.innerWidth < 768 ? 55 : 60
+                      }
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {membersByAge.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        fontSize: window.innerWidth < 640 ? "12px" : "14px",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-40 xs:h-44 md:h-48 text-center text-muted-foreground text-sm xs:text-base">
+                <div>
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No age distribution data available</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 touch:shadow-xl xl:col-span-1">
           <CardHeader className="p-3 xs:p-4 md:p-6">
             <CardTitle className="flex items-center gap-2 xs:gap-3 text-sm xs:text-base md:text-lg">
               <div className="p-1.5 xs:p-2 bg-warning/10 rounded-lg touch:p-3 flex-shrink-0">

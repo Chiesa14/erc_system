@@ -294,11 +294,16 @@ export function ActivityLogger({
       date: activity.date,
       start_time: activity.start_time || "",
       end_time: activity.end_time || "",
-      status: activity.status,
       type: activity.type,
       description: activity.description || "",
     });
     setIsDialogOpen(true);
+  };
+
+  const getNextStatus = (status: Activity["status"]) => {
+    if (status === "Planned") return "Ongoing";
+    if (status === "Ongoing") return "Completed";
+    return null;
   };
 
   const handleStatusUpdate = async (
@@ -331,7 +336,6 @@ export function ActivityLogger({
       date: "",
       start_time: "",
       end_time: "",
-      status: "Planned",
       type: "",
       description: "",
     });
@@ -368,7 +372,6 @@ export function ActivityLogger({
     date: "",
     start_time: "",
     end_time: "",
-    status: "Planned" as Activity["status"],
     type: "",
     description: "",
   });
@@ -560,32 +563,6 @@ export function ActivityLogger({
                 </div>
 
                 <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        status: value as Activity["status"],
-                      })
-                    }
-                    value={formData.status}
-                  >
-                    <SelectTrigger id="status">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["Planned", "Ongoing", "Completed", "Cancelled"].map(
-                        (status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
-                          </SelectItem>
-                        )
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
                   <Label htmlFor="type">Type</Label>
                   <Select
                     onValueChange={(value) =>
@@ -672,18 +649,11 @@ export function ActivityLogger({
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0"
-                        onClick={() => {
-                          const statuses: Activity["status"][] = [
-                            "Planned",
-                            "Ongoing",
-                            "Completed",
-                            "Cancelled",
-                          ];
-                          const currentIndex = statuses.indexOf(
-                            activity.status
-                          );
-                          const nextStatus =
-                            statuses[(currentIndex + 1) % statuses.length];
+                        disabled={!getNextStatus(activity.status)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const nextStatus = getNextStatus(activity.status);
+                          if (!nextStatus) return;
                           handleStatusUpdate(activity.id, nextStatus);
                         }}
                       >

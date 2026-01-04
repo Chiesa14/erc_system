@@ -322,7 +322,8 @@ export default function YouthDocuments() {
                           </span>
                           <span>•</span>
                           <span>
-                            {formatDate(doc.uploaded_at)} ({formatRelativeTime(doc.uploaded_at)})
+                            {formatDate(doc.uploaded_at)} (
+                            {formatRelativeTime(doc.uploaded_at)})
                           </span>
                           <span>•</span>
                           <span>{doc.downloads} downloads</span>
@@ -352,7 +353,6 @@ export default function YouthDocuments() {
                         {downloadingId === doc.id ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Downloading...
                           </>
                         ) : (
                           <>

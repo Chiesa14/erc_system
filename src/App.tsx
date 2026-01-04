@@ -12,6 +12,7 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import AdminFamilies from "./pages/admin/AdminFamilies";
+import AdminRoles from "./pages/admin/AdminRoles";
 import { ParentLayout } from "./components/parent/ParentLayout";
 import ParentDashboard from "./pages/parent/ParentDashboard";
 import FamilyMembers from "./pages/parent/FamilyMembers";
@@ -156,6 +157,16 @@ const App = () => (
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <AdminLayout>
                     <AdminDocumentManagement />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/roles"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminLayout>
+                    <AdminRoles />
                   </AdminLayout>
                 </ProtectedRoute>
               }

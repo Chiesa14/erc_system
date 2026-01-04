@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { API_ENDPOINTS, apiDelete, apiGet, apiPost } from "@/lib/api";
-import { Plus, Search, Trash2, Users } from "lucide-react";
+import { Plus, Search, Trash2, Users, Loader2 } from "lucide-react";
 
 interface Family {
   id: number;
@@ -49,6 +49,7 @@ export default function AdminFamilies() {
     name: "",
     category: "",
   });
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchFamilies = useCallback(async () => {
     try {
@@ -93,6 +94,7 @@ export default function AdminFamilies() {
     }
 
     try {
+      setSubmitting(true);
       await apiPost(API_ENDPOINTS.families.base, {
         name: formData.name.trim(),
         category: formData.category.trim(),
@@ -113,6 +115,8 @@ export default function AdminFamilies() {
         description: error.message || "Failed to create family",
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -197,11 +201,22 @@ export default function AdminFamilies() {
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
                   className="rounded-xl"
+                  disabled={submitting}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="rounded-xl">
-                  Create
+                <Button
+                  type="submit"
+                  className="rounded-xl"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    </>
+                  ) : (
+                    "Create"
+                  )}
                 </Button>
               </div>
             </form>

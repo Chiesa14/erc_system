@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Church } from "lucide-react";
+import { Church, Loader2 } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -124,11 +124,14 @@ const Login = () => {
 
               <Button
                 type="submit"
-                className="w-full mt-6"
+                className="w-full mt-6 flex justify-center items-center gap-2"
                 disabled={loading || isSubmitting}
                 size="lg"
               >
-                {loading || isSubmitting ? "Signing In..." : "Sign In"}
+                {(loading || isSubmitting) && (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                )}
+                {loading || isSubmitting ? "" : "Sign In"}
               </Button>
             </form>
 

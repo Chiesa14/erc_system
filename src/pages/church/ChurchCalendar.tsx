@@ -27,7 +27,7 @@ import {
   Filter,
   Loader2,
 } from "lucide-react";
-import { format, isSameDay, parseISO, startOfDay } from "date-fns";
+import { addDays, format, parseISO, startOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -47,6 +47,8 @@ interface FamilyActivity {
   family_id: number;
   family_name: string;
   date: string;
+  start_date?: string | null;
+  end_date?: string | null;
   start_time?: string | null;
   end_time?: string | null;
   status: "Planned" | "Ongoing" | "Completed" | "Cancelled";
@@ -193,6 +195,33 @@ export default function ChurchCalendar() {
     }
   };
 
+  const activityStartISO = (activity: FamilyActivity) =>
+    activity.start_date || activity.date;
+
+  const activityEndISO = (activity: FamilyActivity) =>
+    activity.end_date || activity.start_date || activity.date;
+
+  const activityStartDate = (activity: FamilyActivity) =>
+    startOfDay(parseISO(activityStartISO(activity)));
+
+  const activityEndDate = (activity: FamilyActivity) =>
+    startOfDay(parseISO(activityEndISO(activity)));
+
+  const activityOverlapsDay = (activity: FamilyActivity, day: Date) => {
+    const d = startOfDay(day);
+    return activityStartDate(activity) <= d && activityEndDate(activity) >= d;
+  };
+
+  const formatActivityDateRange = (activity: FamilyActivity) => {
+    const startIso = activityStartISO(activity);
+    const endIso = activityEndISO(activity);
+    const startLabel = formatDate(startIso);
+    if (endIso && endIso !== startIso) {
+      return `${startLabel} - ${formatDate(endIso)}`;
+    }
+    return startLabel;
+  };
+
   const openQr = async (activity: FamilyActivity) => {
     if (!token) return;
     try {
@@ -288,20 +317,29 @@ export default function ChurchCalendar() {
 
   // Get activities for selected date
   const eventsForSelectedDate = activities.filter(
-    (activity) =>
-      selectedDate && isSameDay(parseISO(activity.date), selectedDate)
+    (activity) => selectedDate && activityOverlapsDay(activity, selectedDate)
   );
 
   // Get all activity dates for calendar highlighting
-  const activityDates = activities.map((activity) => parseISO(activity.date));
+  const activityDates = activities.flatMap((activity) => {
+    const start = activityStartDate(activity);
+    const end = activityEndDate(activity);
+    const dates: Date[] = [];
+    let d = start;
+    // Safety cap in case of bad data
+    for (let i = 0; i < 400 && d <= end; i++) {
+      dates.push(d);
+      d = startOfDay(addDays(d, 1));
+    }
+    return dates;
+  });
 
   // Get upcoming activities
   const upcomingActivities = activities
-    .filter(
-      (activity) =>
-        startOfDay(parseISO(activity.date)) >= startOfDay(new Date())
+    .filter((activity) => activityEndDate(activity) >= startOfDay(new Date()))
+    .sort(
+      (a, b) => activityStartDate(a).getTime() - activityStartDate(b).getTime()
     )
-    .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
     .slice(0, 5);
 
   const getCategoryColor = (category: string) => {
@@ -386,7 +424,6 @@ export default function ChurchCalendar() {
           {qrLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading…
             </div>
           ) : checkinSession ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -395,8 +432,8 @@ export default function ChurchCalendar() {
                   <>
                     <div>
                       <span className="font-medium">Date:</span>{" "}
-                      {formatDate(selectedActivity.date)} (
-                      {formatRelativeTime(selectedActivity.date)})
+                      {formatActivityDateRange(selectedActivity)} (
+                      {formatRelativeTime(activityStartISO(selectedActivity))})
                     </div>
                     {(selectedActivity.start_time ||
                       selectedActivity.end_time) && (
@@ -684,8 +721,8 @@ export default function ChurchCalendar() {
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <CalendarIcon className="h-3 w-3" />
-                        {formatDate(activity.date)} (
-                        {formatRelativeTime(activity.date)})
+                        {formatActivityDateRange(activity)} (
+                        {formatRelativeTime(activityStartISO(activity))})
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
@@ -769,8 +806,11 @@ export default function ChurchCalendar() {
                               <div className="flex items-center gap-2">
                                 <CalendarIcon className="h-4 w-4" />
                                 <span>
-                                  {formatDate(activity.date)} (
-                                  {formatRelativeTime(activity.date)})
+                                  {formatActivityDateRange(activity)} (
+                                  {formatRelativeTime(
+                                    activityStartISO(activity)
+                                  )}
+                                  )
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">

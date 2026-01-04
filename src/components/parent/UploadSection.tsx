@@ -20,6 +20,7 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
@@ -82,6 +83,9 @@ export function UploadSection({ onFilesUploaded }: UploadSectionProps) {
 
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [letterDialogOpen, setLetterDialogOpen] = useState(false);
+
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [letterSubmitting, setLetterSubmitting] = useState(false);
 
   const [viewDocOpen, setViewDocOpen] = useState(false);
   const [viewDoc, setViewDoc] = useState<UploadedFile | null>(null);
@@ -410,6 +414,7 @@ export function UploadSection({ onFilesUploaded }: UploadSectionProps) {
       }`.trim();
 
     try {
+      setReportSubmitting(true);
       const response = await axios.post(
         `${BASE_URL}/report`,
         {
@@ -441,6 +446,8 @@ export function UploadSection({ onFilesUploaded }: UploadSectionProps) {
         description: "Failed to submit report.",
         variant: "destructive",
       });
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
@@ -473,6 +480,7 @@ export function UploadSection({ onFilesUploaded }: UploadSectionProps) {
     }
 
     try {
+      setLetterSubmitting(true);
       const escapeHtml = (value: string) => {
         return value
           .replace(/&/g, "&amp;")
@@ -536,6 +544,8 @@ export function UploadSection({ onFilesUploaded }: UploadSectionProps) {
         description: "Failed to submit letter.",
         variant: "destructive",
       });
+    } finally {
+      setLetterSubmitting(false);
     }
   };
 
@@ -1613,8 +1623,17 @@ export function UploadSection({ onFilesUploaded }: UploadSectionProps) {
                       </div>
 
                       <div className="flex justify-end">
-                        <Button onClick={handleSubmitReport}>
-                          Submit Report
+                        <Button
+                          onClick={handleSubmitReport}
+                          disabled={reportSubmitting}
+                        >
+                          {reportSubmitting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            </>
+                          ) : (
+                            "Submit Report"
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1693,7 +1712,18 @@ export function UploadSection({ onFilesUploaded }: UploadSectionProps) {
                       </div>
 
                       <div className="flex justify-end">
-                        <Button onClick={handleSubmitLetter}>Send</Button>
+                        <Button
+                          onClick={handleSubmitLetter}
+                          disabled={letterSubmitting}
+                        >
+                          {letterSubmitting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            </>
+                          ) : (
+                            "Send"
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </DialogContent>

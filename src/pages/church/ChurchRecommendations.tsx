@@ -672,7 +672,8 @@ const ChurchRecommendations = () => {
                           </div>
                           <p className="text-sm text-muted-foreground">
                             {program.family_name} family • Submitted{" "}
-                            {formatDate(program.submitted_date)} ({formatRelativeTime(program.submitted_date)})
+                            {formatDate(program.submitted_date)} (
+                            {formatRelativeTime(program.submitted_date)})
                           </p>
                           <p className="text-sm text-foreground">
                             {program.description}
@@ -893,7 +894,6 @@ const ChurchRecommendations = () => {
                           {submitting ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              Sending...
                             </>
                           ) : (
                             <>
@@ -1046,7 +1046,11 @@ const ChurchRecommendations = () => {
                                 <span>{item.family_name} family</span>
                                 <span>•</span>
                                 <span>
-                                  {formatDate(item.created_date || item.date)} ({formatRelativeTime(item.created_date || item.date)})
+                                  {formatDate(item.created_date || item.date)} (
+                                  {formatRelativeTime(
+                                    item.created_date || item.date
+                                  )}
+                                  )
                                 </span>
                                 <span>•</span>
                                 <Badge variant="outline" className="text-xs">
@@ -1368,7 +1372,8 @@ const ChurchRecommendations = () => {
                             <span>•</span>
                             <Clock className="h-3 w-3" />
                             <span>
-                              {formatDate(feedback.date)} ({formatRelativeTime(feedback.date)})
+                              {formatDate(feedback.date)} (
+                              {formatRelativeTime(feedback.date)})
                             </span>
                             <span>•</span>
                             {renderStars(feedback.rating)}
@@ -1389,7 +1394,8 @@ const ChurchRecommendations = () => {
                                     {reply.author}
                                   </div>
                                   <div className="text-xs text-muted-foreground">
-                                    {formatDate(reply.date)} ({formatRelativeTime(reply.date)})
+                                    {formatDate(reply.date)} (
+                                    {formatRelativeTime(reply.date)})
                                   </div>
                                   <p>{reply.content}</p>
                                 </div>

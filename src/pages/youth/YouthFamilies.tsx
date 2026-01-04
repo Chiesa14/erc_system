@@ -106,16 +106,9 @@ export default function YouthFamilies() {
 
       <div className="grid gap-6">
         {families.map((family) => {
-          // Find the activity with the last_activity_date
-          const lastActivity = family.last_activity_date
-            ? family.activities.find(
-                (activity) => activity.date === family.last_activity_date
-              )
-            : null;
-          // Determine status based on the last activity's status
-          const isActive =
-            lastActivity &&
-            ["Ongoing", "Planned"].includes(lastActivity.status);
+          const isActive = family.activities.some((a) =>
+            ["Ongoing", "Planned"].includes(a.status)
+          );
 
           if (family.activities.length === 0) {
             return null;

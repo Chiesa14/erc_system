@@ -24,18 +24,14 @@ import {
   Calendar as CalendarIcon,
   Clock,
   Users,
-  MapPin,
   Star,
-  ChevronRight,
-  Filter,
   Loader2,
-  Plus,
   CalendarDays,
 } from "lucide-react";
 import {
+  addDays,
   endOfWeek,
   format,
-  isSameDay,
   parseISO,
   startOfDay,
   startOfWeek,
@@ -59,6 +55,8 @@ interface FamilyActivity {
   family_id: number;
   family_name: string;
   date: string; // ISO date string
+  start_date?: string | null;
+  end_date?: string | null;
   start_time?: string | null;
   end_time?: string | null;
   status: "Planned" | "Ongoing" | "Completed" | "Cancelled";
@@ -94,30 +92,6 @@ interface ActivityStats {
   planned: number;
 }
 
-interface ActivityFormData {
-  date: string;
-  status: "Planned" | "Ongoing" | "Completed" | "Cancelled";
-  category: "Spiritual" | "Social";
-  type: string;
-  description: string;
-}
-
-// Type options based on your backend schemas
-const SPIRITUAL_TYPES = [
-  "Prayer calendars",
-  "Overnights",
-  "Crusades",
-  "Agape events",
-];
-
-const SOCIAL_TYPES = [
-  "Contributions",
-  "Illnesses",
-  "Bereavements",
-  "Weddings",
-  "Transfers",
-];
-
 export default function FamilyActivitiesCalendar() {
   const [activities, setActivities] = useState<FamilyActivity[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
@@ -132,17 +106,6 @@ export default function FamilyActivitiesCalendar() {
     planned: 0,
   });
 
-  // Form and dialog states
-  const [isAddEventOpen, setIsAddEventOpen] = useState(false);
-  const [formData, setFormData] = useState<ActivityFormData>({
-    date: format(new Date(), "yyyy-MM-dd"),
-    status: "Planned",
-    category: "Spiritual",
-    type: "",
-    description: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
   const [selectedActivity, setSelectedActivity] =
@@ -155,7 +118,6 @@ export default function FamilyActivitiesCalendar() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
-  const [viewMode, setViewMode] = useState("single");
 
   const { token, user } = useAuth();
   const { toast } = useToast();
@@ -253,6 +215,45 @@ export default function FamilyActivitiesCalendar() {
     }
   };
 
+  const activityStartISO = (activity: FamilyActivity) =>
+    activity.start_date || activity.date;
+
+  const activityEndISO = (activity: FamilyActivity) =>
+    activity.end_date || activity.start_date || activity.date;
+
+  const activityStartDate = (activity: FamilyActivity) =>
+    startOfDay(parseISO(activityStartISO(activity)));
+
+  const activityEndDate = (activity: FamilyActivity) =>
+    startOfDay(parseISO(activityEndISO(activity)));
+
+  const activityOverlapsDay = (activity: FamilyActivity, day: Date) => {
+    const d = startOfDay(day);
+    return activityStartDate(activity) <= d && activityEndDate(activity) >= d;
+  };
+
+  const activityOverlapsRange = (
+    activity: FamilyActivity,
+    rangeStart: Date,
+    rangeEnd: Date
+  ) => {
+    const start = startOfDay(rangeStart);
+    const end = startOfDay(rangeEnd);
+    return (
+      activityEndDate(activity) >= start && activityStartDate(activity) <= end
+    );
+  };
+
+  const formatActivityDateRange = (activity: FamilyActivity) => {
+    const startIso = activityStartISO(activity);
+    const endIso = activityEndISO(activity);
+    const startLabel = formatDate(startIso);
+    if (endIso && endIso !== startIso) {
+      return `${startLabel} - ${formatDate(endIso)}`;
+    }
+    return startLabel;
+  };
+
   const openQr = async (activity: FamilyActivity) => {
     if (!token) return;
     try {
@@ -328,11 +329,7 @@ export default function FamilyActivitiesCalendar() {
     const stats = {
       total: activitiesList.length,
       thisWeek: activitiesList.filter((activity) => {
-        const activityDate = startOfDay(parseISO(activity.date));
-        return (
-          activityDate >= startOfDay(weekStart) &&
-          activityDate <= startOfDay(weekEnd)
-        );
+        return activityOverlapsRange(activity, weekStart, weekEnd);
       }).length,
       completed: activitiesList.filter(
         (activity) => activity.status === "Completed"
@@ -345,86 +342,31 @@ export default function FamilyActivitiesCalendar() {
     setStats(stats);
   };
 
-  // Create new activity
-  const handleCreateActivity = async () => {
-    if (!token || !formData.type.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      const activityData = {
-        date: formData.date,
-        status: formData.status,
-        category: formData.category,
-        type: formData.type,
-        description: formData.description || null,
-      };
-
-      await axios.post(`${baseUrl}/`, activityData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      toast({
-        title: "Success",
-        description: "Activity created successfully",
-      });
-
-      setIsAddEventOpen(false);
-      resetForm();
-      fetchActivities();
-    } catch (err) {
-      console.error("Failed to create activity:", err);
-      toast({
-        title: "Error",
-        description: "Failed to create activity",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Form helpers
-  const resetForm = () => {
-    setFormData({
-      date: format(new Date(), "yyyy-MM-dd"),
-      status: "Planned",
-      category: "Spiritual",
-      type: "",
-      description: "",
-    });
-  };
-
-  const getTypeOptions = () => {
-    return formData.category === "Spiritual" ? SPIRITUAL_TYPES : SOCIAL_TYPES;
-  };
-
   // Get activities for selected date
   const eventsForSelectedDate = activities.filter(
-    (activity) =>
-      selectedDate && isSameDay(parseISO(activity.date), selectedDate)
+    (activity) => selectedDate && activityOverlapsDay(activity, selectedDate)
   );
 
   // Get all activity dates for calendar highlighting
-  const activityDates = activities.map((activity) => parseISO(activity.date));
+  const activityDates = activities.flatMap((activity) => {
+    const start = activityStartDate(activity);
+    const end = activityEndDate(activity);
+    const dates: Date[] = [];
+    let d = start;
+    // Safety cap in case of bad data
+    for (let i = 0; i < 400 && d <= end; i++) {
+      dates.push(d);
+      d = startOfDay(addDays(d, 1));
+    }
+    return dates;
+  });
 
   // Get upcoming activities
   const upcomingActivities = activities
-    .filter(
-      (activity) =>
-        startOfDay(parseISO(activity.date)) >= startOfDay(new Date())
+    .filter((activity) => activityEndDate(activity) >= startOfDay(new Date()))
+    .sort(
+      (a, b) => activityStartDate(a).getTime() - activityStartDate(b).getTime()
     )
-    .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
     .slice(0, 5);
 
   const getCategoryColor = (category: string) => {
@@ -509,7 +451,6 @@ export default function FamilyActivitiesCalendar() {
           {qrLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading…
             </div>
           ) : checkinSession ? (
             <div className="space-y-4">
@@ -517,8 +458,8 @@ export default function FamilyActivitiesCalendar() {
                 <div className="rounded-lg border p-3 bg-muted/20 space-y-1 text-sm">
                   <div>
                     <span className="font-medium">Date:</span>{" "}
-                    {formatDate(selectedActivity.date)} (
-                    {formatRelativeTime(selectedActivity.date)})
+                    {formatActivityDateRange(selectedActivity)} (
+                    {formatRelativeTime(activityStartISO(selectedActivity))})
                   </div>
                   {(selectedActivity.start_time ||
                     selectedActivity.end_time) && (
@@ -601,18 +542,6 @@ export default function FamilyActivitiesCalendar() {
               : "View and manage your family activities, events, and programs"}
           </p>
         </div>
-
-        {/* <div className="flex gap-2">
-          <Select value={viewMode} onValueChange={setViewMode}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="calendar">Calendar</SelectItem>
-              <SelectItem value="list">List View</SelectItem>
-            </SelectContent>
-          </Select>
-        </div> */}
       </div>
 
       {/* Filters */}
@@ -731,7 +660,7 @@ export default function FamilyActivitiesCalendar() {
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                numberOfMonths={viewMode === "calendar" ? 2 : 1}
+                numberOfMonths={1}
                 className="max-w-full [&_table]:w-full [&_td]:text-center [&_th]:text-center [&_.rdp-cell]:p-2 [&_.rdp-day]:w-full [&_.rdp-day]:h-10 [&_.rdp-day]:text-sm [&_.rdp-months]:flex [&_.rdp-months]:gap-20 [&_.rdp-months]:justify-center [&_.rdp-month]:flex-shrink-0 pointer-events-auto"
                 modifiers={modifiers}
                 modifiersStyles={modifiersStyles}
@@ -779,8 +708,8 @@ export default function FamilyActivitiesCalendar() {
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <CalendarDays className="h-3 w-3" />
-                        {formatDate(activity.date)} (
-                        {formatRelativeTime(activity.date)})
+                        {formatActivityDateRange(activity)} (
+                        {formatRelativeTime(activityStartISO(activity))})
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
@@ -857,8 +786,8 @@ export default function FamilyActivitiesCalendar() {
                         <div className="flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4" />
                           <span>
-                            {formatDate(activity.date)} (
-                            {formatRelativeTime(activity.date)})
+                            {formatActivityDateRange(activity)} (
+                            {formatRelativeTime(activityStartISO(activity))})
                           </span>
                         </div>
                         <div className="flex items-center gap-2">

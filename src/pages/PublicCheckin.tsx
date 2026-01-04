@@ -16,7 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiGet, apiPost } from "@/lib/api";
 import { ENV_CONFIG } from "@/lib/environment";
-import { CalendarDays, Clock, Users } from "lucide-react";
+import { CalendarDays, Clock, Users, Loader2 } from "lucide-react";
 
 interface PublicCheckinInfo {
   activity_id: number;
@@ -65,6 +65,8 @@ export default function PublicCheckin() {
   const [name, setName] = useState("");
   const [familyMode, setFamilyMode] = useState<"known" | "visitor">("known");
   const [familyId, setFamilyId] = useState<string>("");
+
+  const [submitting, setSubmitting] = useState(false);
 
   const [tick, setTick] = useState(0);
 
@@ -158,6 +160,7 @@ export default function PublicCheckin() {
     }
 
     try {
+      setSubmitting(true);
       await apiPost(`/public/activity-checkin/${token}/attend`, {
         attendee_name: name,
         family_of_origin_id: familyMode === "known" ? Number(familyId) : null,
@@ -177,6 +180,8 @@ export default function PublicCheckin() {
         description: e?.message || "Failed to submit attendance",
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -342,7 +347,7 @@ export default function PublicCheckin() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your full name"
-                    disabled={effectiveStatus !== "open"}
+                    disabled={effectiveStatus !== "open" || submitting}
                   />
                 </div>
 
@@ -353,7 +358,7 @@ export default function PublicCheckin() {
                     onValueChange={(v) =>
                       setFamilyMode(v as "known" | "visitor")
                     }
-                    disabled={effectiveStatus !== "open"}
+                    disabled={effectiveStatus !== "open" || submitting}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -373,7 +378,7 @@ export default function PublicCheckin() {
                     <Select
                       value={familyId}
                       onValueChange={setFamilyId}
-                      disabled={effectiveStatus !== "open"}
+                      disabled={effectiveStatus !== "open" || submitting}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose your family" />
@@ -391,11 +396,17 @@ export default function PublicCheckin() {
 
                 <Button
                   onClick={submit}
-                  disabled={effectiveStatus !== "open"}
+                  disabled={effectiveStatus !== "open" || submitting}
                   className="w-full"
                   size="lg"
                 >
-                  Submit Attendance
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    </>
+                  ) : (
+                    "Submit Attendance"
+                  )}
                 </Button>
               </CardContent>
             </Card>

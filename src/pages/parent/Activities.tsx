@@ -12,6 +12,8 @@ interface Activity {
   id: number;
   family_id: number;
   date: string;
+  start_date?: string | null;
+  end_date?: string | null;
   status: "Planned" | "Ongoing" | "Completed" | "Cancelled";
   category: "Spiritual" | "Social";
   type: string;
@@ -51,14 +53,16 @@ export default function Activities() {
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
+      const monthStart = new Date(currentYear, currentMonth, 1);
+      const monthEnd = new Date(currentYear, currentMonth + 1, 0);
 
       const stats = {
         total: activities.filter((activity) => {
-          const activityDate = new Date(activity.date);
-          return (
-            activityDate.getMonth() === currentMonth &&
-            activityDate.getFullYear() === currentYear
-          );
+          const start = activity.start_date || activity.date;
+          const end = activity.end_date || activity.start_date || activity.date;
+          const startD = new Date(start);
+          const endD = new Date(end);
+          return endD >= monthStart && startD <= monthEnd;
         }).length,
         spiritual: activities.filter(
           (activity) => activity.category === "Spiritual"

@@ -73,6 +73,7 @@ import {
   RefreshCw,
   Users,
   Shield,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
@@ -83,10 +84,19 @@ interface Family {
   category: string;
 }
 
+interface FamilyRole {
+  id: number;
+  name: string;
+  system_role: string;
+}
+
 interface User {
   other: string;
   id: number;
   fullName: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  deliverance_name?: string | null;
   gender: string;
   email: string;
   phone: string;
@@ -94,6 +104,7 @@ interface User {
   family_category: string | null;
   family_name: string | null;
   role: string;
+  family_role_id?: number | null;
   biography: string | null;
   profile_pic: string | null;
   created_at?: string;
@@ -126,23 +137,40 @@ export default function UserManagement() {
   const [families, setFamilies] = useState<Family[]>([]);
   const [familiesLoading, setFamiliesLoading] = useState(false);
 
+  const [familyRoles, setFamilyRoles] = useState<FamilyRole[]>([]);
+  const [familyRolesLoading, setFamilyRolesLoading] = useState(false);
+
   const [formData, setFormData] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
+    deliveranceName: "",
     gender: "",
     email: "",
     phone: "",
     family_id: "",
-    role: "",
+    family_role_id: "",
     biography: "",
     profile_pic: "", // Added to match AdminUserUpdate schema
     other: "", // Added to match AdminUserUpdate schema
   });
+
+  const buildFullName = (first: string, last: string) => {
+    return `${(first || "").trim()} ${(last || "").trim()}`.trim();
+  };
+
+  const splitNameFromFullName = (fullName: string) => {
+    const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return { firstName: "", lastName: "" };
+    if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+    return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+  };
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterRole, setFilterRole] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
@@ -155,6 +183,9 @@ export default function UserManagement() {
       const formattedUsers: User[] = userData.map((user: any) => ({
         id: user.id,
         fullName: user.full_name,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        deliverance_name: user.deliverance_name,
         gender: user.gender,
         email: user.email,
         phone: user.phone,
@@ -162,6 +193,7 @@ export default function UserManagement() {
         family_category: user.family_category,
         family_name: user.family_name,
         role: user.role,
+        family_role_id: user.family_role_id ?? null,
         biography: user.biography,
         profile_pic: user.profile_pic,
         other: user.other || "",
@@ -201,7 +233,6 @@ export default function UserManagement() {
     }
   }, [toast, token]);
 
-
   const fetchFamilies = useCallback(async () => {
     try {
       setFamiliesLoading(true);
@@ -216,6 +247,23 @@ export default function UserManagement() {
       });
     } finally {
       setFamiliesLoading(false);
+    }
+  }, [toast]);
+
+  const fetchFamilyRoles = useCallback(async () => {
+    try {
+      setFamilyRolesLoading(true);
+      const data = await apiGet<FamilyRole[]>(API_ENDPOINTS.familyRoles.base);
+      setFamilyRoles(data);
+    } catch (error: any) {
+      console.error("Error fetching family roles:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch roles",
+        variant: "destructive",
+      });
+    } finally {
+      setFamilyRolesLoading(false);
     }
   }, [toast]);
 
@@ -253,12 +301,27 @@ export default function UserManagement() {
     });
   }, [families]);
 
+  const roleOptions = useMemo(() => {
+    return [...familyRoles].sort((a, b) => a.name.localeCompare(b.name));
+  }, [familyRoles]);
+
+  const selectedFamilyRole = useMemo(() => {
+    if (!formData.family_role_id) return null;
+    const id = parseInt(formData.family_role_id, 10);
+    if (Number.isNaN(id)) return null;
+    return familyRoles.find((r) => r.id === id) || null;
+  }, [familyRoles, formData.family_role_id]);
+
   // Validate form data
   const validateForm = () => {
     const errors: { [key: string]: string } = {};
 
-    if (!formData.fullName.trim()) {
-      errors.fullName = "Full name is required";
+    if (!formData.firstName.trim()) {
+      errors.firstName = "First name is required";
+    }
+
+    if (!formData.lastName.trim()) {
+      errors.lastName = "Last name is required";
     }
 
     if (!formData.gender || !["Male", "Female"].includes(formData.gender)) {
@@ -275,14 +338,16 @@ export default function UserManagement() {
       errors.phone = "Phone number is required";
     }
 
-    if (!formData.role) {
+    if (!formData.family_role_id) {
       errors.role = "Please select a role";
     }
 
-    if (formData.role === "Père" || formData.role === "Mère") {
-      if (!formData.family_id) {
-        errors.family_id = "Please select a family";
-      }
+    if (
+      (selectedFamilyRole?.system_role === "Père" ||
+        selectedFamilyRole?.system_role === "Mère") &&
+      !formData.family_id
+    ) {
+      errors.family_id = "Please select a family";
     }
 
     setFormErrors(errors);
@@ -311,15 +376,21 @@ export default function UserManagement() {
     }
 
     try {
+      setSubmitting(true);
+      const displayName = buildFullName(formData.firstName, formData.lastName);
       const payload = {
-        full_name: formData.fullName || undefined,
+        first_name: formData.firstName || undefined,
+        last_name: formData.lastName || undefined,
+        deliverance_name: formData.deliveranceName || undefined,
         gender: formData.gender || undefined,
         email: formData.email || undefined,
         phone: formData.phone || undefined,
         family_id: formData.family_id
           ? parseInt(formData.family_id, 10)
           : undefined,
-        role: formData.role || undefined,
+        family_role_id: formData.family_role_id
+          ? parseInt(formData.family_role_id, 10)
+          : undefined,
         biography: formData.biography || undefined,
         profile_pic: formData.profile_pic || undefined,
         other: formData.other || undefined,
@@ -334,7 +405,7 @@ export default function UserManagement() {
 
         toast({
           title: "User updated successfully!",
-          description: `${formData.fullName} has been updated`,
+          description: displayName ? `${displayName} has been updated` : "User has been updated",
         });
       } else {
         // Create new user
@@ -342,17 +413,19 @@ export default function UserManagement() {
 
         toast({
           title: "User registered successfully!",
-          description: "New user has been created",
+          description: displayName ? `${displayName} has been created` : "New user has been created",
         });
       }
 
       setFormData({
-        fullName: "",
+        firstName: "",
+        lastName: "",
+        deliveranceName: "",
         gender: "",
         email: "",
         phone: "",
         family_id: "",
-        role: "",
+        family_role_id: "",
         biography: "",
         profile_pic: "",
         other: "",
@@ -373,6 +446,8 @@ export default function UserManagement() {
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -380,8 +455,9 @@ export default function UserManagement() {
     if (token) {
       fetchUsers();
       fetchFamilies();
+      fetchFamilyRoles();
     }
-  }, [fetchUsers, fetchFamilies, token]);
+  }, [fetchUsers, fetchFamilies, fetchFamilyRoles, token]);
 
   const handleDelete = async (userId: number) => {
     if (!token) return;
@@ -405,14 +481,17 @@ export default function UserManagement() {
   };
 
   const handleEdit = (user: User) => {
+    const fallback = splitNameFromFullName(user.fullName);
     setEditingUser(user);
     setFormData({
-      fullName: user.fullName,
+      firstName: user.first_name || fallback.firstName,
+      lastName: user.last_name || fallback.lastName,
+      deliveranceName: user.deliverance_name || "",
       gender: user.gender,
       email: user.email,
       phone: user.phone,
       family_id: user.family_id ? String(user.family_id) : "",
-      role: user.role,
+      family_role_id: user.family_role_id ? String(user.family_role_id) : "",
       biography: user.biography || "",
       profile_pic: user.profile_pic || "",
       other: user.other || "",
@@ -476,12 +555,14 @@ export default function UserManagement() {
             if (!open) {
               setEditingUser(null);
               setFormData({
-                fullName: "",
+                firstName: "",
+                lastName: "",
+                deliveranceName: "",
                 gender: "",
                 email: "",
                 phone: "",
                 family_id: "",
-                role: "",
+                family_role_id: "",
                 biography: "",
                 profile_pic: "",
                 other: "",
@@ -512,21 +593,54 @@ export default function UserManagement() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Label htmlFor="firstName">First Name *</Label>
                   <Input
-                    id="fullName"
-                    value={formData.fullName}
+                    id="firstName"
+                    value={formData.firstName}
                     onChange={(e) =>
-                      setFormData({ ...formData, fullName: e.target.value })
+                      setFormData({ ...formData, firstName: e.target.value })
                     }
                     required
                     className="rounded-xl bg-white"
                   />
-                  {formErrors.fullName && (
+                  {formErrors.firstName && (
                     <p className="text-sm text-destructive">
-                      {formErrors.fullName}
+                      {formErrors.firstName}
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Input
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
+                    required
+                    className="rounded-xl bg-white"
+                  />
+                  {formErrors.lastName && (
+                    <p className="text-sm text-destructive">
+                      {formErrors.lastName}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deliveranceName">Deliverance Name</Label>
+                  <Input
+                    id="deliveranceName"
+                    value={formData.deliveranceName}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        deliveranceName: e.target.value,
+                      })
+                    }
+                    className="rounded-xl bg-white"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -625,17 +739,25 @@ export default function UserManagement() {
                 <div className="space-y-2">
                   <Label htmlFor="role">Role *</Label>
                   <Select
-                    value={formData.role}
+                    value={formData.family_role_id}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, role: value })
+                      setFormData({ ...formData, family_role_id: value })
                     }
+                    disabled={familyRolesLoading}
                   >
                     <SelectTrigger className="rounded-xl">
-                      <SelectValue placeholder="Select role" />
+                      <SelectValue
+                        placeholder={
+                          familyRolesLoading ? "Loading Roles..." : "Select role"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Père">Père</SelectItem>
-                      <SelectItem value="Mère">Mère</SelectItem>
+                      {roleOptions.map((r) => (
+                        <SelectItem key={r.id} value={String(r.id)}>
+                          {r.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {formErrors.role && (
@@ -669,11 +791,24 @@ export default function UserManagement() {
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
                   className="rounded-xl"
+                  disabled={submitting}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="rounded-xl">
-                  {editingUser ? "Update User" : "Register User"}
+                <Button
+                  type="submit"
+                  className="rounded-xl"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    </>
+                  ) : editingUser ? (
+                    "Update User"
+                  ) : (
+                    "Register User"
+                  )}
                 </Button>
               </div>
             </form>
@@ -914,10 +1049,7 @@ export default function UserManagement() {
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell
-                              colSpan={7}
-                              className="h-64 text-center"
-                            >
+                            <TableCell colSpan={7} className="h-64 text-center">
                               <p className="text-muted-foreground">
                                 No users found
                               </p>

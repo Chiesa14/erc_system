@@ -31,6 +31,7 @@ import {
   Eye,
   Upload,
   Search,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -72,6 +73,9 @@ export default function YouthAnnouncements() {
   const [announcements, setAnnouncements] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const [announcementSubmitting, setAnnouncementSubmitting] = useState(false);
+  const [documentSubmitting, setDocumentSubmitting] = useState(false);
 
   // UI state
   const [selectedTab, setSelectedTab] = useState("announcements");
@@ -209,7 +213,7 @@ export default function YouthAnnouncements() {
     if (!token) return;
 
     try {
-      setLoading(true);
+      setAnnouncementSubmitting(true);
       const formData = new FormData();
       formData.append("title", announcementForm.title);
       formData.append("content", announcementForm.content);
@@ -251,7 +255,7 @@ export default function YouthAnnouncements() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setAnnouncementSubmitting(false);
     }
   };
 
@@ -260,7 +264,7 @@ export default function YouthAnnouncements() {
     if (!token) return;
 
     try {
-      setLoading(true);
+      setDocumentSubmitting(true);
       const formData = new FormData();
       formData.append("file", documentForm.file);
       formData.append("description", documentForm.description);
@@ -293,7 +297,7 @@ export default function YouthAnnouncements() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setDocumentSubmitting(false);
     }
   };
 
@@ -555,16 +559,23 @@ export default function YouthAnnouncements() {
                     onClick={createAnnouncement}
                     className="flex-1"
                     disabled={
-                      loading ||
+                      announcementSubmitting ||
                       !announcementForm.title ||
                       !announcementForm.content
                     }
                   >
-                    {loading ? "Creating..." : "Post Announcement"}
+                    {announcementSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      </>
+                    ) : (
+                      "Post Announcement"
+                    )}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => setIsAddAnnouncementOpen(false)}
+                    disabled={announcementSubmitting}
                   >
                     Cancel
                   </Button>
@@ -632,13 +643,20 @@ export default function YouthAnnouncements() {
                   <Button
                     onClick={uploadDocument}
                     className="flex-1"
-                    disabled={loading || !documentForm.file}
+                    disabled={documentSubmitting || !documentForm.file}
                   >
-                    {loading ? "Uploading..." : "Upload Document"}
+                    {documentSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      </>
+                    ) : (
+                      "Upload Document"
+                    )}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => setIsUploadDocOpen(false)}
+                    disabled={documentSubmitting}
                   >
                     Cancel
                   </Button>
@@ -739,7 +757,8 @@ export default function YouthAnnouncements() {
                         <span>By {user?.full_name || "Unknown"}</span>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {formatDate(announcement.created_at)} ({formatRelativeTime(announcement.created_at)})
+                          {formatDate(announcement.created_at)} (
+                          {formatRelativeTime(announcement.created_at)})
                         </div>
                         <div className="flex items-center gap-1">
                           <Eye className="h-3 w-3" />
@@ -820,7 +839,8 @@ export default function YouthAnnouncements() {
                           <span>{formatFileSize(doc.size)}</span>
                           <span className="hidden sm:inline">•</span>
                           <span>
-                            Uploaded {formatDate(doc.uploaded_at)} ({formatRelativeTime(doc.uploaded_at)})
+                            Uploaded {formatDate(doc.uploaded_at)} (
+                            {formatRelativeTime(doc.uploaded_at)})
                           </span>
                           <span className="hidden sm:inline">•</span>
                           <span>{doc.downloads} downloads</span>

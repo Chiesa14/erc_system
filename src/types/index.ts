@@ -14,6 +14,8 @@ export interface Activity {
   id?: number;
   family_id: number;
   date: string;
+  start_date?: string | null;
+  end_date?: string | null;
   status: ActivityStatusEnum;
   type: string;
   description: string;

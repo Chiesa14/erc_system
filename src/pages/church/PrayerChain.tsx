@@ -37,6 +37,7 @@ import {
   Edit,
   Plus,
   Search,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
@@ -131,6 +132,7 @@ export default function PrayerChain() {
     start_time: "",
     end_time: "",
   });
+  const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
   const { toast } = useToast();
   const { token, user } = useAuth();
 
@@ -175,9 +177,12 @@ export default function PrayerChain() {
 
     const fetchFamilies = async () => {
       try {
-        const response = await axios.get(buildApiUrl(API_ENDPOINTS.families.base), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await axios.get(
+          buildApiUrl(API_ENDPOINTS.families.base),
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setFamilies(response.data);
       } catch (error) {
         toast({
@@ -255,6 +260,7 @@ export default function PrayerChain() {
     }
 
     try {
+      setScheduleSubmitting(true);
       const response = await axios.post(
         buildApiUrl(API_ENDPOINTS.prayerChains.base),
         {
@@ -298,6 +304,8 @@ export default function PrayerChain() {
         description: error.response?.data?.detail || "Failed to add schedule.",
         variant: "destructive",
       });
+    } finally {
+      setScheduleSubmitting(false);
     }
   };
 
@@ -441,8 +449,18 @@ export default function PrayerChain() {
                     }
                   />
                 </div>
-                <Button onClick={addSchedule} className="w-full">
-                  Add Schedule
+                <Button
+                  onClick={addSchedule}
+                  className="w-full"
+                  disabled={scheduleSubmitting}
+                >
+                  {scheduleSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    </>
+                  ) : (
+                    "Add Schedule"
+                  )}
                 </Button>
               </div>
             </DialogContent>
@@ -554,11 +572,7 @@ export default function PrayerChain() {
                         </h4>
                         <p className="text-sm text-muted-foreground">
                           {chain.schedules
-                            .filter(
-                              (s) =>
-                                s.day ===
-                                getTodayWeekday()
-                            )
+                            .filter((s) => s.day === getTodayWeekday())
                             .map((s) => `${s.start_time} - ${s.end_time}`)
                             .join(", ")}
                         </p>
@@ -721,9 +735,7 @@ export default function PrayerChain() {
                 <div className="space-y-4">
                   {getTodaySchedule().map((chain) => {
                     const todaySchedule = chain.schedules.filter(
-                      (s) =>
-                        s.day ===
-                        getTodayWeekday()
+                      (s) => s.day === getTodayWeekday()
                     );
                     return (
                       <div

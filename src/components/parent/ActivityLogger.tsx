@@ -28,6 +28,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -42,6 +55,13 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  CirclePlay,
+  CircleCheck,
+  Calendar as CalendarIcon,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
@@ -51,6 +71,8 @@ interface Activity {
   id: number;
   family_id: number;
   date: string;
+  start_date?: string | null;
+  end_date?: string | null;
   start_time?: string | null;
   end_time?: string | null;
   status: "Planned" | "Ongoing" | "Completed" | "Cancelled";
@@ -84,6 +106,151 @@ interface ActivityLoggerProps {
   category: "Spiritual" | "Social";
 }
 
+const toISODate = (d: Date) => {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const parseISODate = (value: string) => {
+  if (!value) return null;
+  const [y, m, d] = value.split("-").map((v) => Number(v));
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+};
+
+const formatDateLabel = (value: string) => {
+  const d = parseISODate(value);
+  return d
+    ? d.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      })
+    : "Pick a date";
+};
+
+const TIME_OPTIONS = Array.from({ length: 24 * 4 }, (_, i) => {
+  const minutes = i * 15;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+});
+
+const TIME_MINUTE_OPTIONS = ["00", "15", "30", "45"] as const;
+const TIME_HOUR_12_OPTIONS = Array.from({ length: 12 }, (_, i) =>
+  String(i + 1)
+);
+const TIME_PERIOD_OPTIONS = ["AM", "PM"] as const;
+
+const parseTime24 = (value: string) => {
+  if (!value) return null;
+  const [hh, mm] = value.split(":");
+  const hour = Number(hh);
+  const minute = Number(mm);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+
+  const period = hour >= 12 ? "PM" : "AM";
+  const hour12 = ((hour + 11) % 12) + 1;
+  return {
+    hour12: String(hour12),
+    minute: String(minute).padStart(2, "0"),
+    period,
+  } as const;
+};
+
+const toTime24 = (hour12: string, minute: string, period: "AM" | "PM") => {
+  const h12 = Number(hour12);
+  const m = Number(minute);
+  if (!Number.isFinite(h12) || !Number.isFinite(m)) return "";
+  let hour24 = h12 % 12;
+  if (period === "PM") hour24 += 12;
+  return `${String(hour24).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
+
+function TimePicker({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const parsed = parseTime24(value);
+  const [hour12, minute, period] = parsed
+    ? [parsed.hour12, parsed.minute, parsed.period]
+    : ["", "00", "AM"];
+
+  const isNone = !value;
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <Select
+        value={isNone ? "__none__" : hour12}
+        onValueChange={(v) => {
+          if (v === "__none__") {
+            onChange("");
+            return;
+          }
+          onChange(toTime24(v, minute, period as "AM" | "PM"));
+        }}
+      >
+        <SelectTrigger id={id}>
+          <SelectValue placeholder="Hour" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__">None</SelectItem>
+          {TIME_HOUR_12_OPTIONS.map((h) => (
+            <SelectItem key={h} value={h}>
+              {h}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={minute}
+        disabled={isNone}
+        onValueChange={(v) => {
+          onChange(toTime24(hour12 || "12", v, period as "AM" | "PM"));
+        }}
+      >
+        <SelectTrigger aria-label="Minute">
+          <SelectValue placeholder="Min" />
+        </SelectTrigger>
+        <SelectContent>
+          {TIME_MINUTE_OPTIONS.map((m) => (
+            <SelectItem key={m} value={m}>
+              {m}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={period}
+        disabled={isNone}
+        onValueChange={(v) => {
+          onChange(toTime24(hour12 || "12", minute, v as "AM" | "PM"));
+        }}
+      >
+        <SelectTrigger aria-label="AM/PM">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {TIME_PERIOD_OPTIONS.map((p) => (
+            <SelectItem key={p} value={p}>
+              {p}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 const SPIRITUAL_TYPES = [
   "Prayer calendars",
   "Overnights",
@@ -112,14 +279,18 @@ export function ActivityLogger({
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const todayISO = new Date().toISOString().slice(0, 10);
 
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
+    null
+  );
   const [checkinSession, setCheckinSession] =
     useState<ActivityCheckinSessionOut | null>(null);
   const [attendances, setAttendances] = useState<ActivityAttendanceOut[]>([]);
-
 
   const fetchActivities = useCallback(async () => {
     if (authLoading) return;
@@ -138,9 +309,7 @@ export function ActivityLogger({
       console.error("Error fetching activities:", error);
       toast({
         title: "Error",
-        description:
-          error.message ||
-          `Failed to fetch ${title.toLowerCase()}`,
+        description: error.message || `Failed to fetch ${title.toLowerCase()}`,
         variant: "destructive",
       });
     } finally {
@@ -158,13 +327,37 @@ export function ActivityLogger({
     e.preventDefault();
     if (!user?.family_id || !token) return;
 
+    if (!formData.start_date) {
+      toast({
+        title: "Error",
+        description: "Start date is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      setSubmitting(true);
+      const isRange =
+        Boolean(formData.end_date) && formData.end_date !== formData.start_date;
+
       const activityData = {
-        ...formData,
+        ...(isRange
+          ? {
+              start_date: formData.start_date,
+              end_date: formData.end_date,
+            }
+          : {
+              date: formData.start_date,
+              start_date: null,
+              end_date: null,
+            }),
         start_time: formData.start_time ? formData.start_time : null,
         end_time: formData.end_time ? formData.end_time : null,
         family_id: user.family_id,
-        category, // Use the prop category
+        category,
+        type: formData.type,
+        description: formData.description || null,
       };
 
       if (editingActivity) {
@@ -191,11 +384,11 @@ export function ActivityLogger({
       console.error("Error saving activity:", error);
       toast({
         title: "Error",
-        description:
-          error.message ||
-          `Failed to save ${title.toLowerCase()}`,
+        description: error.message || `Failed to save ${title.toLowerCase()}`,
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -289,9 +482,12 @@ export function ActivityLogger({
   };
 
   const handleEdit = (activity: Activity) => {
+    const start = activity.start_date || activity.date;
+    const end = activity.end_date || activity.start_date || activity.date;
     setEditingActivity(activity);
     setFormData({
-      date: activity.date,
+      start_date: start,
+      end_date: end && end !== start ? end : "",
       start_time: activity.start_time || "",
       end_time: activity.end_time || "",
       type: activity.type,
@@ -300,20 +496,14 @@ export function ActivityLogger({
     setIsDialogOpen(true);
   };
 
-  const getNextStatus = (status: Activity["status"]) => {
-    if (status === "Planned") return "Ongoing";
-    if (status === "Ongoing") return "Completed";
-    return null;
-  };
-
   const handleStatusUpdate = async (
-    activityId: number,
+    activity: Activity,
     newStatus: Activity["status"]
   ) => {
     if (!token) return;
 
     try {
-      await apiPut(`${API_ENDPOINTS.families.activities}/${activityId}`, {
+      await apiPut(`${API_ENDPOINTS.families.activities}/${activity.id}`, {
         status: newStatus,
       });
       await fetchActivities();
@@ -333,7 +523,8 @@ export function ActivityLogger({
 
   const resetForm = () => {
     setFormData({
-      date: "",
+      start_date: "",
+      end_date: "",
       start_time: "",
       end_time: "",
       type: "",
@@ -369,14 +560,51 @@ export function ActivityLogger({
   };
 
   const [formData, setFormData] = useState({
-    date: "",
+    start_date: "",
+    end_date: "",
     start_time: "",
     end_time: "",
     type: "",
     description: "",
   });
 
-  const availableTypes = category === "Spiritual" ? SPIRITUAL_TYPES : SOCIAL_TYPES;
+  const availableTypes =
+    category === "Spiritual" ? SPIRITUAL_TYPES : SOCIAL_TYPES;
+
+  const nextActionableActivity = (() => {
+    const actionables = activities.filter(
+      (a) => a.status !== "Completed" && a.status !== "Cancelled"
+    );
+
+    const toStartMs = (a: Activity) => {
+      const start = a.start_date || a.date;
+      const time = a.start_time ? `${a.start_time}` : "00:00";
+      return new Date(`${start}T${time}`).getTime();
+    };
+
+    const nowMs = Date.now();
+
+    const byStart = (a: Activity, b: Activity) => {
+      const aStart = toStartMs(a);
+      const bStart = toStartMs(b);
+      if (aStart !== bStart) return aStart - bStart;
+      return a.id - b.id;
+    };
+
+    const ongoing = actionables
+      .filter((a) => a.status === "Ongoing")
+      .slice()
+      .sort(byStart);
+    if (ongoing[0]) return ongoing[0];
+
+    const upcomingPlanned = actionables
+      .filter((a) => a.status === "Planned" && toStartMs(a) >= nowMs)
+      .slice()
+      .sort(byStart);
+    if (upcomingPlanned[0]) return upcomingPlanned[0];
+
+    return actionables.slice().sort(byStart)[0] || null;
+  })();
 
   if (authLoading || loading) {
     return (
@@ -427,7 +655,7 @@ export function ActivityLogger({
                   <img
                     src={`${ENV_CONFIG.apiBaseUrl}/public/checkin-qr/${checkinSession.token}`}
                     alt="Check-in QR"
-                    className="w-56 h-56 rounded-md border bg-white p-2"  
+                    className="w-56 h-56 rounded-md border bg-white p-2"
                   />
                 </div>
 
@@ -486,7 +714,9 @@ export function ActivityLogger({
               </div>
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">No QR available.</div>
+            <div className="text-sm text-muted-foreground">
+              No QR available.
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -508,16 +738,15 @@ export function ActivityLogger({
             }}
           >
             <DialogTrigger asChild>
-              <Button className="rounded-xl">
-                <Plus className="w-4 h-4 mr-2" />
-                Log Activity
-              </Button>
+              <Button className="rounded-xl">Log Activity</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg rounded-2xl">
+            <DialogContent className="max-w-xl rounded-2xl">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <DialogHeader>
                   <DialogTitle>
-                    {editingActivity ? "Edit Activity" : `Log ${category} Activity`}
+                    {editingActivity
+                      ? "Edit Activity"
+                      : `Log ${category} Activity`}
                   </DialogTitle>
                   <DialogDescription>
                     {title} - Please fill in the details below.
@@ -525,38 +754,112 @@ export function ActivityLogger({
                 </DialogHeader>
 
                 <div>
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    required
-                    value={formData.date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, date: e.target.value })
-                    }
-                  />
+                  <Label htmlFor="start_date">Start date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start rounded-xl font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formatDateLabel(formData.start_date)}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={
+                          parseISODate(formData.start_date) ?? undefined
+                        }
+                        onSelect={(d) => {
+                          if (!d) return;
+                          const picked = toISODate(d);
+                          setFormData((prev) => {
+                            const nextEnd =
+                              prev.end_date && prev.end_date < picked
+                                ? ""
+                                : prev.end_date;
+                            return {
+                              ...prev,
+                              start_date: picked,
+                              end_date: nextEnd,
+                            };
+                          });
+                        }}
+                        disabled={(d) => {
+                          const t = new Date();
+                          t.setHours(0, 0, 0, 0);
+                          return d < t;
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <Label htmlFor="end_date">End date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start rounded-xl font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.end_date
+                          ? formatDateLabel(formData.end_date)
+                          : "Optional"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={parseISODate(formData.end_date) ?? undefined}
+                        onSelect={(d) => {
+                          if (!d) return;
+                          setFormData({ ...formData, end_date: toISODate(d) });
+                        }}
+                        disabled={(d) => {
+                          const t = new Date();
+                          t.setHours(0, 0, 0, 0);
+                          const minStr = formData.start_date || todayISO;
+                          const minD = parseISODate(minStr);
+                          if (!minD) return d < t;
+                          minD.setHours(0, 0, 0, 0);
+                          return d < minD;
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="start_time">Start time</Label>
-                    <Input
+                    <TimePicker
                       id="start_time"
-                      type="time"
                       value={formData.start_time}
-                      onChange={(e) =>
-                        setFormData({ ...formData, start_time: e.target.value })
+                      onChange={(v) =>
+                        setFormData({
+                          ...formData,
+                          start_time: v,
+                        })
                       }
                     />
                   </div>
                   <div>
                     <Label htmlFor="end_time">End time</Label>
-                    <Input
+                    <TimePicker
                       id="end_time"
-                      type="time"
                       value={formData.end_time}
-                      onChange={(e) =>
-                        setFormData({ ...formData, end_time: e.target.value })
+                      onChange={(v) =>
+                        setFormData({
+                          ...formData,
+                          end_time: v,
+                        })
                       }
                     />
                   </div>
@@ -599,6 +902,7 @@ export function ActivityLogger({
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
+                    disabled={submitting}
                     onClick={() => {
                       setIsDialogOpen(false);
                       resetForm();
@@ -606,8 +910,16 @@ export function ActivityLogger({
                   >
                     Cancel
                   </Button>
-                  <Button type="submit">
-                    {editingActivity ? "Update" : "Log"}
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      </>
+                    ) : editingActivity ? (
+                      "Update"
+                    ) : (
+                      "Log"
+                    )}
                   </Button>
                 </div>
               </form>
@@ -641,24 +953,40 @@ export function ActivityLogger({
                   <TableCell>{activity.type}</TableCell>
                   <TableCell>{activity.category}</TableCell>
                   <TableCell>
-                    {new Date(activity.date).toLocaleDateString()}
+                    {(() => {
+                      const start = activity.start_date || activity.date;
+                      const end =
+                        activity.end_date ||
+                        activity.start_date ||
+                        activity.date;
+                      const startLabel = new Date(start).toLocaleDateString();
+                      if (end && end !== start) {
+                        return `${startLabel} - ${new Date(
+                          end
+                        ).toLocaleDateString()}`;
+                      }
+                      return startLabel;
+                    })()}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      <div
                         className="h-6 w-6 p-0"
-                        disabled={!getNextStatus(activity.status)}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const nextStatus = getNextStatus(activity.status);
-                          if (!nextStatus) return;
-                          handleStatusUpdate(activity.id, nextStatus);
-                        }}
+                        // onClick={(e) => {
+                        //   e.stopPropagation();
+                        //   const nextStatus: Activity["status"] | null =
+                        //     activity.status === "Planned"
+                        //       ? "Ongoing"
+                        //       : activity.status === "Ongoing"
+                        //         ? "Completed"
+                        //         : null;
+
+                        //   if (!nextStatus) return;
+                        //   handleStatusUpdate(activity.id, nextStatus);
+                        // }}
                       >
                         {getStatusIcon(activity.status)}
-                      </Button>
+                      </div>
                       <Badge variant={getStatusVariant(activity.status)}>
                         {activity.status}
                       </Badge>
@@ -671,28 +999,66 @@ export function ActivityLogger({
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(activity);
-                        }}
-                        className="rounded-lg"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(activity.id);
-                        }}
-                        className="rounded-lg"
-                      >
-                        Delete
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {nextActionableActivity?.id === activity.id &&
+                            activity.status === "Planned" && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusUpdate(activity, "Ongoing");
+                                }}
+                              >
+                                <CirclePlay className="mr-2 h-4 w-4" />
+                                Mark as ongoing
+                              </DropdownMenuItem>
+                            )}
+
+                          {nextActionableActivity?.id === activity.id &&
+                            activity.status === "Ongoing" && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusUpdate(activity, "Completed");
+                                }}
+                              >
+                                <CircleCheck className="mr-2 h-4 w-4" />
+                                Mark as completed
+                              </DropdownMenuItem>
+                            )}
+
+                          <DropdownMenuSeparator />
+
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(activity);
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(activity.id);
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </TableRow>

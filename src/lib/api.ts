@@ -2,11 +2,23 @@
 // This file manages all API integration settings, base URLs, endpoints,
 // authentication tokens, and request/response interceptors
 
-import { getCurrentEnvConfig, getCurrentEnvironment } from "./environment";
+import {
+  getCurrentEnvConfig,
+  getCurrentEnvironment,
+  debugLog,
+  debugError,
+} from "./environment";
 
 // Environment-based configuration
 const currentEnv = getCurrentEnvironment();
 const envConfig = getCurrentEnvConfig();
+
+// Log configuration on module load
+debugLog("🔧 API Module Loaded:", {
+  environment: currentEnv,
+  apiBaseUrl: envConfig.apiBaseUrl,
+  wsBaseUrl: envConfig.wsBaseUrl,
+});
 
 // Base URL configuration
 export const API_CONFIG = {
@@ -72,6 +84,11 @@ export const API_ENDPOINTS = {
     documents: "/family/family-documents",
     stats: "/family/family-members",
     activate: "/family/family-members/activate", // For member activation
+  },
+
+  // Family Roles (catalog)
+  familyRoles: {
+    base: "/family-roles",
   },
 
   // Chat & Communication
@@ -225,7 +242,29 @@ export const handleApiResponse = async (response: Response) => {
 
     try {
       const errorData = await response.json();
-      errorMessage = errorData.detail || errorData.message || errorMessage;
+
+      const detail = (errorData as { detail?: unknown; message?: unknown })
+        .detail;
+      const message = (errorData as { detail?: unknown; message?: unknown })
+        .message;
+
+      if (typeof detail === "string") {
+        errorMessage = detail;
+      } else if (Array.isArray(detail)) {
+        // Common FastAPI/Pydantic validation format.
+        errorMessage = detail
+          .map((d: any) => {
+            const loc = Array.isArray(d?.loc) ? d.loc.join(".") : "";
+            const msg = d?.msg || d?.message || JSON.stringify(d);
+            return loc ? `${loc}: ${msg}` : String(msg);
+          })
+          .join("\n");
+      } else if (detail != null) {
+        errorMessage =
+          typeof detail === "object" ? JSON.stringify(detail) : String(detail);
+      } else if (typeof message === "string") {
+        errorMessage = message;
+      }
     } catch {
       // If we can't parse the error response, use the default message
     }
@@ -234,6 +273,12 @@ export const handleApiResponse = async (response: Response) => {
     (error as { status?: number; response?: Response }).status =
       response.status;
     (error as { status?: number; response?: Response }).response = response;
+
+    debugError("❌ API Response Error:", {
+      url: response.url,
+      status: response.status,
+      message: errorMessage,
+    });
 
     throw error;
   }
@@ -259,6 +304,8 @@ export const retryRequest = async <T>(
         throw lastError;
       }
 
+      debugLog(`🔄 Retrying request (attempt ${attempt + 1}/${maxRetries})`);
+
       // Exponential backoff
       const backoffDelay = delay * Math.pow(2, attempt);
       await new Promise((resolve) => setTimeout(resolve, backoffDelay));
@@ -277,6 +324,12 @@ export const apiFetch = async <T>(
   const url = buildApiUrl(endpoint, params);
   const token = AuthTokenManager.getToken();
 
+  debugLog("🌐 API Request:", {
+    method: options.method || "GET",
+    url: url,
+    hasAuth: !!token,
+  });
+
   const fetchOptions: RequestInit = {
     ...options,
     headers: {
@@ -285,19 +338,27 @@ export const apiFetch = async <T>(
     },
   };
 
-  const response = await fetch(url, fetchOptions);
-  const processedResponse = await handleApiResponse(response);
-
-  // Handle empty responses
-  const text = await processedResponse.text();
-  if (!text) {
-    return {} as T;
-  }
-
   try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new Error("Invalid JSON response from server");
+    const response = await fetch(url, fetchOptions);
+    const processedResponse = await handleApiResponse(response);
+
+    // Handle empty responses
+    const text = await processedResponse.text();
+    if (!text) {
+      debugLog("✅ API Response: Empty (204 No Content)");
+      return {} as T;
+    }
+
+    try {
+      const data = JSON.parse(text) as T;
+      debugLog("✅ API Response:", { url, status: response.status });
+      return data;
+    } catch {
+      throw new Error("Invalid JSON response from server");
+    }
+  } catch (error) {
+    debugError("❌ API Fetch Failed:", { url, error });
+    throw error;
   }
 };
 
@@ -370,28 +431,38 @@ export const apiPostForm = async <T>(
   const url = buildApiUrl(endpoint, params);
   const token = AuthTokenManager.getToken();
 
+  debugLog("🌐 API Form Request:", { method: "POST", url, hasAuth: !!token });
+
   const formBody = new URLSearchParams(formData).toString();
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      ...createAuthHeaders(token),
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: formBody,
-  });
-
-  const processedResponse = await handleApiResponse(response);
-  const text = await processedResponse.text();
-
-  if (!text) {
-    return {} as T;
-  }
-
   try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new Error("Invalid JSON response from server");
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        ...createAuthHeaders(token),
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formBody,
+    });
+
+    const processedResponse = await handleApiResponse(response);
+    const text = await processedResponse.text();
+
+    if (!text) {
+      debugLog("✅ API Response: Empty (204 No Content)");
+      return {} as T;
+    }
+
+    try {
+      const data = JSON.parse(text) as T;
+      debugLog("✅ API Response:", { url, status: response.status });
+      return data;
+    } catch {
+      throw new Error("Invalid JSON response from server");
+    }
+  } catch (error) {
+    debugError("❌ API Form Fetch Failed:", { url, error });
+    throw error;
   }
 };
 

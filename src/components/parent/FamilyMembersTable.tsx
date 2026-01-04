@@ -41,7 +41,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { MoreHorizontal, Plus, Edit, Trash2, Users } from "lucide-react";
+import {
+  MoreHorizontal,
+  Plus,
+  Edit,
+  Trash2,
+  Users,
+  Loader2,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
@@ -73,6 +80,7 @@ export function FamilyMembersTable() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -135,6 +143,7 @@ export function FamilyMembersTable() {
     if (!user) return;
 
     try {
+      setSubmitting(true);
       const payload = {
         name: formData.name,
         phone: formData.phone,
@@ -199,6 +208,8 @@ export function FamilyMembersTable() {
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -308,10 +319,7 @@ export function FamilyMembersTable() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="rounded-xl">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Member
-              </Button>
+              <Button className="rounded-xl">Add Member</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto rounded-2xl">
               <DialogHeader>
@@ -542,11 +550,24 @@ export function FamilyMembersTable() {
                     variant="outline"
                     onClick={() => setIsDialogOpen(false)}
                     className="rounded-xl"
+                    disabled={submitting}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" className="rounded-xl">
-                    {editingMember ? "Update Member" : "Add Member"}
+                  <Button
+                    type="submit"
+                    className="rounded-xl"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      </>
+                    ) : editingMember ? (
+                      "Update Member"
+                    ) : (
+                      "Add Member"
+                    )}
                   </Button>
                 </div>
               </form>

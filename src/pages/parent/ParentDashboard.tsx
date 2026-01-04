@@ -78,6 +78,8 @@ interface FamilyStats {
 interface RecentActivity {
   description: string;
   date: string;
+  start_date?: string | null;
+  end_date?: string | null;
   status: string;
 }
 
@@ -172,12 +174,14 @@ export default function ParentDashboard() {
       const today = new Date();
       const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
+      const endOfMonth = (d: Date): Date => new Date(d.getFullYear(), d.getMonth() + 1, 0);
+
       let dateFrom: Date | undefined;
       let dateTo: Date | undefined;
 
       if (activityTimePreset === "current_month") {
         dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
-        dateTo = startOfToday;
+        dateTo = endOfMonth(today);
       } else if (activityTimePreset === "current_week") {
         const day = startOfToday.getDay();
         const mondayIndex = day === 0 ? 6 : day - 1;
@@ -185,7 +189,7 @@ export default function ParentDashboard() {
         dateTo = startOfToday;
       } else if (activityTimePreset === "current_year") {
         dateFrom = new Date(today.getFullYear(), 0, 1);
-        dateTo = startOfToday;
+        dateTo = new Date(today.getFullYear(), 11, 31);
       } else if (activityTimePreset === "last_year") {
         const lastYear = today.getFullYear() - 1;
         dateFrom = new Date(lastYear, 0, 1);
@@ -256,6 +260,8 @@ export default function ParentDashboard() {
           response.data.map((act: any) => ({
             description: act.description,
             date: act.date,
+            start_date: act.start_date ?? null,
+            end_date: act.end_date ?? null,
             status: act.status,
           }))
         );
@@ -557,6 +563,8 @@ export default function ParentDashboard() {
               >
                 <BarChart
                   data={activityTypeStatusData}
+                  barGap={6}
+                  barCategoryGap={18}
                   margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
@@ -583,21 +591,18 @@ export default function ParentDashboard() {
                   />
                   <Bar
                     dataKey="completed"
-                    stackId="a"
                     fill="hsl(142 71% 45%)"
                     name="Completed"
                     radius={[2, 2, 0, 0]}
                   />
                   <Bar
                     dataKey="ongoing"
-                    stackId="a"
                     fill="hsl(48 96% 53%)"
                     name="Ongoing"
                     radius={[2, 2, 0, 0]}
                   />
                   <Bar
                     dataKey="planned"
-                    stackId="a"
                     fill="hsl(330 81% 60%)"
                     name="Planned"
                     radius={[2, 2, 0, 0]}
@@ -767,7 +772,16 @@ export default function ParentDashboard() {
                         {activity.description}
                       </h4>
                       <p className="text-2xs xs:text-xs md:text-sm text-muted-foreground truncate">
-                        {formatDate(activity.date)} ({formatRelativeTime(activity.date)})
+                        {(() => {
+                          const start = activity.start_date || activity.date;
+                          const end = activity.end_date || activity.start_date || activity.date;
+                          const startLabel = formatDate(start);
+                          const rangeLabel =
+                            end && end !== start
+                              ? `${startLabel} - ${formatDate(end)}`
+                              : startLabel;
+                          return `${rangeLabel} (${formatRelativeTime(start)})`;
+                        })()}
                       </p>
                     </div>
                   </div>

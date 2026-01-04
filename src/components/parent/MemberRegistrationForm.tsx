@@ -3,16 +3,33 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +56,9 @@ interface MemberRegistrationFormProps {
   onClose: () => void;
 }
 
-export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps) {
+export function MemberRegistrationForm({
+  onClose,
+}: MemberRegistrationFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -56,8 +75,11 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       return age - 1;
     }
     return age;
@@ -65,21 +87,21 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
 
   const onSubmit = async (data: MemberFormData) => {
     setIsSubmitting(true);
-    
+
     try {
       // Calculate age
       const age = calculateAge(data.dateOfBirth);
-      
+
       // Mock submission - replace with actual API call
       console.log("Submitting member data:", { ...data, age });
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       toast({
         title: "Member added successfully",
         description: `${data.name} has been added to your family.`,
       });
-      
+
       onClose();
     } catch (error) {
       toast({
@@ -121,7 +143,11 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
               <FormItem>
                 <FormLabel>Email (Optional)</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="Enter email address" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="Enter email address"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -194,7 +220,10 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Gender</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select gender" />
@@ -217,7 +246,10 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Education Level</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select education level" />
@@ -242,7 +274,10 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Employment Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select employment status" />
@@ -269,7 +304,7 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
             <FormItem>
               <FormLabel>Home Address</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder="Enter complete home address"
                   className="min-h-[80px]"
                   {...field}
@@ -293,9 +328,7 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel>
-                  BCC Class Graduate
-                </FormLabel>
+                <FormLabel>BCC Class Graduate</FormLabel>
                 <p className="text-sm text-muted-foreground">
                   Has this person completed the BCC program?
                 </p>
@@ -327,7 +360,10 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Graduation Mode</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select mode" />
@@ -358,9 +394,7 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel>
-                  Has Living Parents
-                </FormLabel>
+                <FormLabel>Has Living Parents</FormLabel>
                 <p className="text-sm text-muted-foreground">
                   Check if this person has living parents
                 </p>
@@ -371,11 +405,22 @@ export function MemberRegistrationForm({ onClose }: MemberRegistrationFormProps)
 
         {/* Action Buttons */}
         <div className="flex justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Adding..." : "Add Member"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              </>
+            ) : (
+              "Add Member"
+            )}
           </Button>
         </div>
       </form>

@@ -64,7 +64,7 @@ export function ParentSidebar() {
           <div className="flex items-center gap-2 xs:gap-3">
             <div className="w-7 h-7 xs:w-8 xs:h-8 md:w-9 md:h-9 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
               <span className="text-primary-foreground font-bold text-xs xs:text-sm md:text-base">
-                👨‍👩‍👧‍👦
+                ⛪
               </span>
             </div>
             {!collapsed && (

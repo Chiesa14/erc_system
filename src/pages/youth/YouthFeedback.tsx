@@ -483,7 +483,6 @@ export default function YouthFeedback() {
                     {submitting ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Submitting...
                       </>
                     ) : (
                       "Submit Feedback"
@@ -574,7 +573,8 @@ export default function YouthFeedback() {
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3 flex-shrink-0" />
                     <span>
-                      {formatDate(feedback.date)} ({formatRelativeTime(feedback.date)})
+                      {formatDate(feedback.date)} (
+                      {formatRelativeTime(feedback.date)})
                     </span>
                   </div>
                   <span className="hidden xs:inline">•</span>
@@ -605,7 +605,8 @@ export default function YouthFeedback() {
                             {reply.author}
                           </div>
                           <div className="text-2xs xs:text-xs text-muted-foreground">
-                            {formatDate(reply.date)} ({formatRelativeTime(reply.date)})
+                            {formatDate(reply.date)} (
+                            {formatRelativeTime(reply.date)})
                           </div>
                         </div>
                         <p className="text-sm text-foreground leading-relaxed">
@@ -704,7 +705,6 @@ export default function YouthFeedback() {
                 {submitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Sending...
                   </>
                 ) : (
                   "Send Reply"

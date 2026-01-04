@@ -61,7 +61,9 @@ const ChangePassword = () => {
 
     try {
       const response = await apiPost<{ message: string }>(
-        memberId ? API_ENDPOINTS.families.activate : API_ENDPOINTS.users.activate,
+        memberId
+          ? API_ENDPOINTS.families.activate
+          : API_ENDPOINTS.users.activate,
         memberId
           ? {
               member_id: Number(memberId),
@@ -149,7 +151,7 @@ const ChangePassword = () => {
                 size="lg"
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {isSubmitting ? "Activating..." : "Activate Account"}
+                {isSubmitting ? "" : "Activate Account"}
               </Button>
             </form>
           </CardContent>

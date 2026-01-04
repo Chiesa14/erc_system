@@ -19,6 +19,8 @@ interface AuthUser {
   family_category?: string;
   family_name?: string;
   family_id?: number;
+  family_role_id?: number | null;
+  family_role_name?: string | null;
   profile_pic?: string;
   biography?: string;
   created_at?: string;

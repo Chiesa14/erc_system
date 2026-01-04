@@ -119,6 +119,13 @@ export const API_ENDPOINTS = {
     base: "/prayer-chains",
   },
 
+  bcc: {
+    base: "/bcc",
+    incomplete: "/bcc/incomplete",
+    memberProgress: "/bcc/members",
+    familyStatus: "/bcc/families",
+  },
+
   // Documents
   documents: {
     shared: "/shared-documents",

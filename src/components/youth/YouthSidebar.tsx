@@ -17,9 +17,11 @@ import {
   Megaphone,
   FileText,
   Users,
+  GraduationCap,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
-const navigationItems = [
+const baseNavigationItems = [
   { title: "Dashboard", url: "/youth", icon: BarChart3 },
   { title: "Group Calendar", url: "/youth/calendar", icon: Calendar },
   { title: "Announcements", url: "/youth/announcements", icon: Megaphone },
@@ -33,6 +35,15 @@ export function YouthSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
+  const { user } = useAuth();
+
+  const isYouthCommittee =
+    (user?.family_role_name || "") === "Youth Committee" ||
+    (user?.family_role_name || "") === "Youth Leader";
+
+  const navigationItems = isYouthCommittee
+    ? [...baseNavigationItems, { title: "BCC Follow-up", url: "/youth/bcc", icon: GraduationCap }]
+    : baseNavigationItems;
 
   const isActive = (path: string) => {
     if (path === "/youth") {

@@ -122,7 +122,9 @@ export default function YouthBccProgress() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold text-primary">{rows.length}</div>
+              <div className="text-3xl font-bold text-primary">
+                {rows.length}
+              </div>
               <Users className="h-8 w-8 text-primary/60" />
             </div>
           </CardContent>
@@ -174,8 +176,8 @@ export default function YouthBccProgress() {
             Progress Details
           </CardTitle>
           <CardDescription>
-            If you think this progress is wrong, ask Youth Committee to record the
-            completed classes.
+            If you think this progress is wrong, ask Youth Committee to record
+            the completed classes.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -195,9 +197,6 @@ export default function YouthBccProgress() {
                   <TableRow key={r.member_id}>
                     <TableCell>
                       <div className="font-medium">{r.member_name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Family ID: {r.family_id}
-                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{r.completion_percent}%</Badge>
@@ -211,7 +210,9 @@ export default function YouthBccProgress() {
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
+                          <span className="text-sm text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </div>
                     </TableCell>
@@ -224,7 +225,9 @@ export default function YouthBccProgress() {
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
+                          <span className="text-sm text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </div>
                     </TableCell>
@@ -254,7 +257,7 @@ export default function YouthBccProgress() {
 
           {user?.family_id ? (
             <p className="text-xs text-muted-foreground mt-3">
-              Family: {user.family_name || ""}
+              Family: {user?.family_name} family
             </p>
           ) : null}
         </CardContent>

@@ -278,9 +278,6 @@ export default function YouthBccFollowUp() {
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{r.family_name} family</div>
-                      <div className="text-xs text-muted-foreground">
-                        Family ID: {r.family_id}
-                      </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div className="text-sm">{r.phone}</div>

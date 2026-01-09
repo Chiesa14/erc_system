@@ -29,6 +29,7 @@ export function ProtectedRoute({
           Père: "/parent",
           Mère: "/parent",
           Other: "/youth",
+          Pastor: "/church",
         };
 
         const fallbackRoute = roleRoutes[user.role] || "/youth";

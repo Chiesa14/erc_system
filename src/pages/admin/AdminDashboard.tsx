@@ -221,9 +221,11 @@ const AdminDashboard: React.FC = () => {
       title: "Active Users",
       value: dashboardData.stats.active_users.toString(),
       change:
-        (
-          (dashboardData.stats.active_users * 100) /
-          dashboardData.stats.total_users
+        Number(
+          (
+            (dashboardData.stats.active_users * 100) /
+            dashboardData.stats.total_users
+          ).toFixed(1)
         ).toString() + "%",
       changeType: "positive" as const,
       icon: Activity,
@@ -233,9 +235,11 @@ const AdminDashboard: React.FC = () => {
       title: "Inactive Users",
       value: dashboardData.stats.inactive_users.toString(),
       change:
-        (
-          (dashboardData.stats.inactive_users * 100) /
-          dashboardData.stats.total_users
+        Number(
+          (
+            (dashboardData.stats.inactive_users * 100) /
+            dashboardData.stats.total_users
+          ).toFixed(1)
         ).toString() + "%",
       changeType: "negative" as const,
       icon: Users,
@@ -352,7 +356,9 @@ const AdminDashboard: React.FC = () => {
         <Card className="rounded-2xl shadow-sm">
           <CardHeader>
             <CardTitle>Total Youth</CardTitle>
-            <CardDescription>Total youth members and their family categories</CardDescription>
+            <CardDescription>
+              Total youth members and their family categories
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -362,14 +368,18 @@ const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="rounded-md border border-purple-300/60 bg-purple-50/40 p-3">
-                  <div className="text-xs font-medium text-purple-700">Young Families</div>
+                  <div className="text-xs font-medium text-purple-700">
+                    Young Families
+                  </div>
                   <div className="mt-1 text-2xl font-bold text-foreground">
                     {dashboardData.youth_members_young_count}
                   </div>
                 </div>
 
                 <div className="rounded-md border border-green-300/60 bg-green-50/40 p-3">
-                  <div className="text-xs font-medium text-green-700">Mature Families</div>
+                  <div className="text-xs font-medium text-green-700">
+                    Mature Families
+                  </div>
                   <div className="mt-1 text-2xl font-bold text-foreground">
                     {dashboardData.youth_members_mature_count}
                   </div>

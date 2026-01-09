@@ -28,6 +28,7 @@ import YouthFeedback from "./pages/youth/YouthFeedback";
 import YouthDocuments from "./pages/youth/YouthDocuments";
 import YouthFamilies from "./pages/youth/YouthFamilies";
 import YouthBccFollowUp from "./pages/youth/YouthBccFollowUp";
+import YouthBccProgress from "./pages/youth/YouthBccProgress";
 import { ChurchLayout } from "./components/church/ChurchLayout";
 import ChurchDashboard from "./pages/church/ChurchDashboard";
 import ChurchRecommendations from "./pages/church/ChurchRecommendations";
@@ -89,6 +90,7 @@ const App = () => (
                       <Route path="feedback" element={<YouthFeedback />} />
                       <Route path="documents" element={<YouthDocuments />} />
                       <Route path="families" element={<YouthFamilies />} />
+                      <Route path="bcc-progress" element={<YouthBccProgress />} />
                       <Route path="bcc" element={<YouthBccFollowUp />} />
                     </Routes>
                   </YouthLayout>
@@ -160,6 +162,16 @@ const App = () => (
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <AdminLayout>
                     <AdminDocumentManagement />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/bcc"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminLayout>
+                    <YouthBccFollowUp />
                   </AdminLayout>
                 </ProtectedRoute>
               }

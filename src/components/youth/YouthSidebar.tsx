@@ -27,6 +27,7 @@ const baseNavigationItems = [
   { title: "Announcements", url: "/youth/announcements", icon: Megaphone },
   { title: "Feedback", url: "/youth/feedback", icon: MessageSquare },
   { title: "Documents", url: "/youth/documents", icon: FileText },
+  { title: "BCC Progress", url: "/youth/bcc-progress", icon: GraduationCap },
   { title: "Family Groups", url: "/youth/families", icon: Users },
 ];
 
@@ -41,7 +42,10 @@ export function YouthSidebar() {
     (user?.family_role_name || "") === "Youth Committee" ||
     (user?.family_role_name || "") === "Youth Leader";
 
-  const navigationItems = isYouthCommittee
+  const canAccessBccFollowUp =
+    isYouthCommittee || user?.role === "Pastor" || user?.role === "admin";
+
+  const navigationItems = canAccessBccFollowUp
     ? [
         ...baseNavigationItems,
         { title: "BCC Follow-up", url: "/youth/bcc", icon: GraduationCap },

@@ -1,4 +1,4 @@
-import { Users, FileText, Home, Shield } from "lucide-react";
+import { Users, FileText, Home, Shield, GraduationCap } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import {
@@ -19,6 +19,7 @@ const navigationItems = [
   { title: "Families", url: "/admin/families", icon: Users },
   { title: "Roles", url: "/admin/roles", icon: Shield },
   { title: "Reports", url: "/admin/reports", icon: FileText },
+  { title: "BCC Follow-up", url: "/admin/bcc", icon: GraduationCap },
 ];
 
 export function AdminSidebar() {

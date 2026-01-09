@@ -48,7 +48,9 @@ export default function YouthBccFollowUp() {
 
   const isYouthCommittee =
     (user?.family_role_name || "") === "Youth Committee" ||
-    (user?.family_role_name || "") === "Youth Leader";
+    (user?.family_role_name || "") === "Youth Leader" ||
+    user?.role === "Pastor" ||
+    user?.role === "Admin";
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -61,11 +63,16 @@ export default function YouthBccFollowUp() {
 
     try {
       setLoading(true);
-      const data = await apiGet<IncompleteMember[]>(API_ENDPOINTS.bcc.incomplete);
+      const data = await apiGet<IncompleteMember[]>(
+        API_ENDPOINTS.bcc.incomplete
+      );
       setRows(data);
     } catch (error: unknown) {
       console.error("Error fetching BCC incomplete list:", error);
-      const message = error instanceof Error ? error.message : "Failed to fetch BCC follow-up list";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch BCC follow-up list";
       toast({
         title: "Error",
         description: message,
@@ -89,7 +96,9 @@ export default function YouthBccFollowUp() {
     if (!q) return rows;
 
     return rows.filter((r) => {
-      const hay = `${r.member_name} ${r.family_name} ${r.family_category} ${r.phone} ${r.email || ""}`
+      const hay = `${r.member_name} ${r.family_name} ${r.family_category} ${
+        r.phone
+      } ${r.email || ""}`
         .toLowerCase()
         .trim();
       return hay.includes(q);
@@ -112,7 +121,8 @@ export default function YouthBccFollowUp() {
       });
     } catch (error: unknown) {
       console.error("Error recording completion:", error);
-      const message = error instanceof Error ? error.message : "Failed to record completion";
+      const message =
+        error instanceof Error ? error.message : "Failed to record completion";
       toast({
         title: "Error",
         description: message,
@@ -130,7 +140,8 @@ export default function YouthBccFollowUp() {
           <CardHeader>
             <CardTitle>Access denied</CardTitle>
             <CardDescription>
-              This page is only available to Youth Committee / Youth Leader accounts.
+              This page is only available to Youth Committee / Youth Leader
+              accounts.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -176,7 +187,9 @@ export default function YouthBccFollowUp() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold text-primary">{rows.length}</div>
+              <div className="text-3xl font-bold text-primary">
+                {rows.length}
+              </div>
               <Users className="h-8 w-8 text-primary/60" />
             </div>
           </CardContent>
@@ -244,7 +257,9 @@ export default function YouthBccFollowUp() {
                 <TableRow>
                   <TableHead>Member</TableHead>
                   <TableHead>Family</TableHead>
-                  <TableHead className="hidden md:table-cell">Contact</TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Contact
+                  </TableHead>
                   <TableHead>Progress</TableHead>
                   <TableHead>Missing</TableHead>
                   <TableHead className="w-[140px]">Action</TableHead>
@@ -270,7 +285,9 @@ export default function YouthBccFollowUp() {
                     <TableCell className="hidden md:table-cell">
                       <div className="text-sm">{r.phone}</div>
                       {r.email && (
-                        <div className="text-xs text-muted-foreground">{r.email}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {r.email}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>

@@ -118,6 +118,7 @@ const App = () => (
                         path="endorsements"
                         element={<ChurchEndorsements />}
                       />
+                      <Route path="bcc" element={<YouthBccFollowUp />} />
                     </Routes>
                   </ChurchLayout>
                 </ProtectedRoute>

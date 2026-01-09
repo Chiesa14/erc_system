@@ -21,6 +21,7 @@ import {
   TrendingUp,
   Church,
   Heart,
+  GraduationCap,
 } from "lucide-react";
 
 const navigationItems = [
@@ -59,6 +60,7 @@ const navigationItems = [
     url: "/church/performance",
     icon: TrendingUp,
   },
+  { title: "BCC Follow-up", url: "/church/bcc", icon: GraduationCap },
   // {
   //   title: "Endorsements",
   //   url: "/church/endorsements",

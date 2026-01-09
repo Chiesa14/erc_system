@@ -42,7 +42,10 @@ export function YouthSidebar() {
     (user?.family_role_name || "") === "Youth Leader";
 
   const navigationItems = isYouthCommittee
-    ? [...baseNavigationItems, { title: "BCC Follow-up", url: "/youth/bcc", icon: GraduationCap }]
+    ? [
+        ...baseNavigationItems,
+        { title: "BCC Follow-up", url: "/youth/bcc", icon: GraduationCap },
+      ]
     : baseNavigationItems;
 
   const isActive = (path: string) => {

@@ -1,7 +1,13 @@
 // Update this page (the content is just a fallback if you fail to update the page)
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Users, Shield, FileText, Church } from "lucide-react";
 
@@ -25,7 +31,7 @@ const Index = () => {
             </Link>
             <Link to="/admin">
               <Button size="lg" variant="outline" className="rounded-2xl px-8">
-                Admin Dashboard
+                Go to Dashboard
               </Button>
             </Link>
           </div>
@@ -35,9 +41,12 @@ const Index = () => {
       {/* Features Section */}
       <div className="container mx-auto px-6 py-16">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-4">Platform Features</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-4">
+            Platform Features
+          </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Comprehensive tools for managing church youth activities, family coordination, and spiritual growth tracking
+            Comprehensive tools for managing church youth activities, family
+            coordination, and spiritual growth tracking
           </p>
         </div>
 
@@ -47,7 +56,8 @@ const Index = () => {
               <Users className="w-12 h-12 text-primary mx-auto mb-4" />
               <CardTitle>User Management</CardTitle>
               <CardDescription>
-                Register and manage church youth and family members with role-based access
+                Register and manage church youth and family members with
+                role-based access
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -65,7 +75,8 @@ const Index = () => {
               <FileText className="w-12 h-12 text-accent mx-auto mb-4" />
               <CardTitle>Activity Tracking</CardTitle>
               <CardDescription>
-                Monitor spiritual activities, participation, and generate comprehensive reports
+                Monitor spiritual activities, participation, and generate
+                comprehensive reports
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -83,7 +94,8 @@ const Index = () => {
               <Shield className="w-12 h-12 text-warning mx-auto mb-4" />
               <CardTitle>Secure Access</CardTitle>
               <CardDescription>
-                Secure platform with role-based access for administrators, parents, and youth leaders
+                Secure platform with role-based access for administrators,
+                parents, and youth leaders
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -101,7 +113,8 @@ const Index = () => {
               <Church className="w-12 h-12 text-primary mx-auto mb-4" />
               <CardTitle>Pastor Oversight</CardTitle>
               <CardDescription>
-                Comprehensive church-level dashboard for youth pastor supervision and guidance
+                Comprehensive church-level dashboard for youth pastor
+                supervision and guidance
               </CardDescription>
             </CardHeader>
             <CardContent>

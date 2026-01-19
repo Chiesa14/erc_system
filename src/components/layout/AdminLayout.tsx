@@ -146,7 +146,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Enhanced scrollable content area */}
           <div className="flex-1 p-2 xs:p-3 md:p-4 lg:p-6 xl:p-8 overflow-hidden">
-            <div className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border hover:scrollbar-thumb-border/50">
+            <div className="h-full overflow-y-auto overflow-x-hidden scrollbar-hidden">
               <div className="min-h-full">{children}</div>
             </div>
           </div>

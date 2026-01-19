@@ -205,7 +205,7 @@ export default function UserManagement() {
 
       const totalUsers = formattedUsers.length;
       const adminUsers = formattedUsers.filter(
-        (u) => u.role === "admin"
+        (u) => u.role === "admin",
       ).length;
       const recentlyUpdated = formattedUsers.filter((u) => {
         if (!u.updated_at) return false;
@@ -273,7 +273,7 @@ export default function UserManagement() {
     try {
       await apiPost<{ message: string; user_id: number }>(
         `${API_ENDPOINTS.users.resetPassword}/${user.id}`,
-        {}
+        {},
       );
 
       toast({
@@ -400,12 +400,14 @@ export default function UserManagement() {
         // Update existing user using new endpoint
         await apiPut(
           `${API_ENDPOINTS.users.updateUser}/${editingUser.id}`,
-          payload
+          payload,
         );
 
         toast({
           title: "User updated successfully!",
-          description: displayName ? `${displayName} has been updated` : "User has been updated",
+          description: displayName
+            ? `${displayName} has been updated`
+            : "User has been updated",
         });
       } else {
         // Create new user
@@ -413,7 +415,9 @@ export default function UserManagement() {
 
         toast({
           title: "User registered successfully!",
-          description: displayName ? `${displayName} has been created` : "New user has been created",
+          description: displayName
+            ? `${displayName} has been created`
+            : "New user has been created",
         });
       }
 
@@ -748,7 +752,9 @@ export default function UserManagement() {
                     <SelectTrigger className="rounded-xl">
                       <SelectValue
                         placeholder={
-                          familyRolesLoading ? "Loading Roles..." : "Select role"
+                          familyRolesLoading
+                            ? "Loading Roles..."
+                            : "Select role"
                         }
                       />
                     </SelectTrigger>
@@ -926,23 +932,23 @@ export default function UserManagement() {
               <>
                 <ScrollArea className="h-[420px]">
                   <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="min-w-[900px]">
                       <TableHeader className="sticky top-0 bg-background z-10">
                         <TableRow>
                           <TableHead className="min-w-[150px]">Name</TableHead>
-                          <TableHead className="min-w-[200px] hidden sm:table-cell">
+                          <TableHead className="min-w-[200px]">
                             Email
                           </TableHead>
-                          <TableHead className="min-w-[120px] hidden md:table-cell">
+                          <TableHead className="min-w-[120px]">
                             Family
                           </TableHead>
                           <TableHead className="min-w-[100px]">
                             Category
                           </TableHead>
-                          <TableHead className="min-w-[80px] hidden lg:table-cell">
+                          <TableHead className="min-w-[80px]">
                             Role
                           </TableHead>
-                          <TableHead className="min-w-[120px] hidden lg:table-cell">
+                          <TableHead className="min-w-[120px]">
                             Last Updated
                           </TableHead>
                           <TableHead className="w-[70px]">Actions</TableHead>
@@ -954,21 +960,23 @@ export default function UserManagement() {
                             <TableRow key={user.id}>
                               <TableCell className="font-medium">
                                 <div>
-                                  <p className="font-medium truncate">
+                                  <p className="font-medium">
                                     {user.fullName}
                                   </p>
-                                  <p className="text-sm text-muted-foreground sm:hidden">
-                                    {user.email}
-                                  </p>
+                                  {user.deliverance_name && (
+                                    <p className="text-sm text-muted-foreground">
+                                      Deliverance name: {user.deliverance_name}
+                                    </p>
+                                  )}
                                   <p className="text-sm text-muted-foreground">
                                     {user.phone}
                                   </p>
                                 </div>
                               </TableCell>
-                              <TableCell className="hidden sm:table-cell">
+                              <TableCell>
                                 {user.email}
                               </TableCell>
-                              <TableCell className="hidden md:table-cell">
+                              <TableCell>
                                 {user.family_name
                                   ? `${user.family_name} family - (${user.family_category})`
                                   : "N/A"}
@@ -984,15 +992,15 @@ export default function UserManagement() {
                                   {user.family_category || "N/A"}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="hidden lg:table-cell">
+                              <TableCell>
                                 <Badge
                                   variant={
                                     user.role === "admin"
                                       ? "destructive"
                                       : user.role === "Mère" ||
-                                        user.role === "Père"
-                                      ? "default"
-                                      : "outline"
+                                          user.role === "Père"
+                                        ? "default"
+                                        : "outline"
                                   }
                                 >
                                   {user.role != "Other"
@@ -1000,7 +1008,7 @@ export default function UserManagement() {
                                     : "Youth member"}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="hidden lg:table-cell">
+                              <TableCell>
                                 <span className="text-sm text-muted-foreground">
                                   {formatDate(user.updated_at)}
                                 </span>
@@ -1101,7 +1109,7 @@ export default function UserManagement() {
 
                           {Array.from(
                             { length: totalPages },
-                            (_, i) => i + 1
+                            (_, i) => i + 1,
                           ).map((page) => {
                             const showPage =
                               page === 1 ||

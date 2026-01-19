@@ -57,17 +57,45 @@ import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 interface FamilyMember {
   id: number;
   name: string;
+  id_name?: string | null;
+  deliverance_name?: string | null;
+  profile_photo?: string | null;
   phone: string;
   email?: string | null;
   home_address?: string | null;
   date_of_birth?: string | null;
   gender?: string | null;
+  // Residence details
+  district?: string | null;
+  sector?: string | null;
+  cell?: string | null;
+  village?: string | null;
+  living_arrangement?: string | null;
+  // Education and BCC
   education_level?: string | null;
-  employment_status?: string | null;
   bcc_class_participation?: boolean | null;
+  bcc_class_status?: string | null;
   year_of_graduation?: number | null;
   graduation_mode?: string | null;
+  // Church
+  commission?: string | null;
+  parent_guardian_status?: string | null;
   parental_status?: boolean | null;
+  // Occupation
+  employment_type?: string | null;
+  employment_status?: string | null;
+  job_title?: string | null;
+  organization?: string | null;
+  business_type?: string | null;
+  business_name?: string | null;
+  work_type?: string | null;
+  work_description?: string | null;
+  work_location?: string | null;
+  // Student fields
+  institution?: string | null;
+  program?: string | null;
+  student_level?: string | null;
+  // Other
   family_id: number;
   age: number;
 }
@@ -84,6 +112,7 @@ export function FamilyMembersTable() {
 
   const [formData, setFormData] = useState({
     name: "",
+    deliverance_name: "",
     phone: "",
     email: "",
     home_address: "",
@@ -109,7 +138,7 @@ export function FamilyMembersTable() {
           Authorization: `Bearer ${token}`,
         },
       }),
-    [token]
+    [token],
   );
 
   const fetchFamilyMembers = useCallback(async () => {
@@ -146,6 +175,7 @@ export function FamilyMembersTable() {
       setSubmitting(true);
       const payload = {
         name: formData.name,
+        deliverance_name: formData.deliverance_name || null,
         phone: formData.phone,
         email: formData.email || null,
         home_address: formData.home_address || null,
@@ -167,8 +197,8 @@ export function FamilyMembersTable() {
           formData.parental_status === "true"
             ? true
             : formData.parental_status === "false"
-            ? false
-            : null,
+              ? false
+              : null,
         family_id: user.family_id,
       };
 
@@ -217,6 +247,7 @@ export function FamilyMembersTable() {
     setEditingMember(member);
     setFormData({
       name: member.name,
+      deliverance_name: member.deliverance_name || "",
       phone: member.phone,
       email: member.email || "",
       home_address: member.home_address || "",
@@ -265,6 +296,7 @@ export function FamilyMembersTable() {
   const resetForm = () => {
     setFormData({
       name: "",
+      deliverance_name: "",
       phone: "",
       email: "",
       home_address: "",
@@ -319,7 +351,9 @@ export function FamilyMembersTable() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="rounded-xl">Add Member</Button>
+              <Button className="rounded-xl">
+                + <span className="hidden sm:block">Add Member</span>
+              </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto rounded-2xl">
               <DialogHeader>
@@ -344,6 +378,21 @@ export function FamilyMembersTable() {
                         setFormData({ ...formData, name: e.target.value })
                       }
                       required
+                      className="rounded-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="deliverance_name">Deliverance Name</Label>
+                    <Input
+                      id="deliverance_name"
+                      value={formData.deliverance_name}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          deliverance_name: e.target.value,
+                        })
+                      }
                       className="rounded-xl"
                     />
                   </div>
@@ -578,103 +627,108 @@ export function FamilyMembersTable() {
 
       <CardContent>
         <div className="rounded-xl border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden md:table-cell">Contact</TableHead>
-                <TableHead>Education</TableHead>
-                <TableHead className="hidden lg:table-cell">
-                  BCC Class
-                </TableHead>
-                <TableHead className="hidden sm:table-cell">Status</TableHead>
-                <TableHead className="w-[70px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{member.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Age: {member.age} • {member.gender || "Not specified"}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {member.phone} {member.email && `• ${member.email}`}
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="text-sm font-medium">
-                        {member.education_level || "Not specified"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {member.employment_status || "Not specified"}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <div>
-                      <p className="text-sm">
-                        {member.bcc_class_participation
-                          ? "Participating"
-                          : "Not participating"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {member.year_of_graduation
-                          ? `Graduating ${member.year_of_graduation} (${member.graduation_mode})`
-                          : "No graduation info"}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <Badge variant="secondary">
-                      {member.parental_status ? "Parent" : "Not a Parent"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(member)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(member.id)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {members.length === 0 && (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[900px]">
+              <TableHeader>
                 <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center py-6 text-muted-foreground"
-                  >
-                    No family members found. Add your first family member to get
-                    started.
-                  </TableCell>
+                  <TableHead className="min-w-[180px]">Name</TableHead>
+                  <TableHead className="min-w-[220px]">Contact</TableHead>
+                  <TableHead className="min-w-[180px]">Education</TableHead>
+                  <TableHead className="min-w-[240px]">BCC Class</TableHead>
+                  <TableHead className="min-w-[140px]">Status</TableHead>
+                  <TableHead className="w-[70px]">Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {members.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{member.name}</p>
+                        {!!member.deliverance_name && (
+                          <p className="text-sm text-muted-foreground">
+                            Deliverance name: {member.deliverance_name}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Age: {member.age} • {member.gender || "Not specified"}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {member.phone} {member.email && `• ${member.email}`}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {member.education_level || "Not specified"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {member.employment_status || "Not specified"}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm">
+                          {member.bcc_class_participation
+                            ? "Participating"
+                            : "Not participating"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {member.year_of_graduation
+                            ? `Graduating ${member.year_of_graduation} (${member.graduation_mode})`
+                            : "No graduation info"}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {member.parental_status ? "Parent" : "Not a Parent"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(member)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(member.id)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {members.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-6 text-muted-foreground"
+                    >
+                      No family members found. Add your first family member to
+                      get started.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </CardContent>
     </Card>

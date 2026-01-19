@@ -148,7 +148,7 @@ export function ChurchLayout({ children }: ChurchLayoutProps) {
           </header>
 
           {/* Enhanced Main Content */}
-          <main className="flex-1 p-2 xs:p-3 md:p-4 lg:p-6 xl:p-8 bg-background overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border hover:scrollbar-thumb-border/50">
+          <main className="flex-1 p-2 xs:p-3 md:p-4 lg:p-6 xl:p-8 bg-background overflow-y-auto overflow-x-hidden no-scrollbar">
             <div className="min-h-full">{children}</div>
           </main>
         </div>

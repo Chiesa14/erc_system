@@ -149,7 +149,7 @@ export function ParentLayout({ children }: ParentLayoutProps) {
           </header>
 
           {/* Enhanced Main Content */}
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-2 xs:p-3 md:p-4 lg:p-6 xl:p-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border hover:scrollbar-thumb-border/50">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-2 xs:p-3 md:p-4 lg:p-6 xl:p-8 bg-background no-scrollbar">
             <div className="min-h-full">{children}</div>
           </main>
         </div>

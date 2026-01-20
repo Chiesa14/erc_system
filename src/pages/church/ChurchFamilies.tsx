@@ -26,6 +26,7 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 import { formatDate, formatRelativeTime } from "@/lib/datetime";
@@ -40,6 +41,12 @@ export default function ChurchFamilies() {
   const [error, setError] = useState(null);
   const [selectedFamily, setSelectedFamily] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const resolvePhotoUrl = (path?: string | null) => {
+    if (!path) return undefined;
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    return buildApiUrl(path);
+  };
 
   // Fetch families from the FastAPI endpoint
   useEffect(() => {
@@ -84,6 +91,8 @@ export default function ChurchFamilies() {
             parents: {
               Pere: family.pere || "",
               Mere: family.mere || "",
+              PerePic: family.pere_pic || null,
+              MerePic: family.mere_pic || null,
             },
             youth: family.members,
             totalMembers: allMembers.length,
@@ -322,22 +331,42 @@ export default function ChurchFamilies() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-muted-foreground">
                       <div>
                         <p className="font-medium text-foreground">Parents:</p>
-                        {Object.entries(
-                          family.parents as Record<string, string>
-                        )
-                          .filter(([_, name]) => name && name.trim() !== "")
-                          .map(([role, name], idx) => (
-                            <p key={idx} className="text-sm">
-                              {role} {name}
-                            </p>
-                          ))}
+                        <div className="mt-1 space-y-1">
+                          {family.parents?.Pere ? (
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage
+                                  src={resolvePhotoUrl(family.parents.PerePic)}
+                                  alt={family.parents.Pere}
+                                />
+                                <AvatarFallback>
+                                  {family.parents.Pere.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">Pere: {family.parents.Pere}</span>
+                            </div>
+                          ) : (
+                            <p className="text-sm">Pere: N/A</p>
+                          )}
+
+                          {family.parents?.Mere ? (
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage
+                                  src={resolvePhotoUrl(family.parents.MerePic)}
+                                  alt={family.parents.Mere}
+                                />
+                                <AvatarFallback>
+                                  {family.parents.Mere.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">Mere: {family.parents.Mere}</span>
+                            </div>
+                          ) : (
+                            <p className="text-sm">Mere: N/A</p>
+                          )}
+                        </div>
                       </div>
-                      {/* <div>
-                        <p className="font-medium text-foreground">Youth:</p>
-                        {family.youth.map((youth, idx) => (
-                          <p key={idx}>{youth}</p>
-                        ))}
-                      </div> */}
                       <div>
                         <p className="font-medium text-foreground">Contact:</p>
                         <p className="text-sm">{family.phone}</p>

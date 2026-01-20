@@ -20,9 +20,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { API_BASE_URL, API_ENDPOINTS, buildApiUrl, AuthTokenManager } from "@/lib/api";
+import axios from "axios";
 
 interface YouthLayoutProps {
   children: React.ReactNode;
@@ -53,6 +56,10 @@ export function YouthLayout({ children }: YouthLayoutProps) {
     biography: user?.biography || "",
     profile_pic: user?.profile_pic || "",
   });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,18 +67,77 @@ export function YouthLayout({ children }: YouthLayoutProps) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleUpdateProfile = async () => {
-    const result = await updateProfile(formData);
-    if (result.error) {
-      toast({
-        title: "Error",
-        description: result.error,
-        variant: "destructive",
-      });
-    } else {
-      setIsProfileOpen(false);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setFormData(prev => ({ ...prev, profile_pic: "" }));
+  };
+
+  const handleUpdateProfile = async () => {
+    setIsUploading(true);
+    try {
+      if (photoFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", photoFile);
+
+        const token = AuthTokenManager.getToken();
+        await axios.post(
+          buildApiUrl("/users/profile-photo"),
+          uploadFormData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+      }
+
+      // Create a copy of formData to modify
+      const updates = { ...formData };
+
+      // If we just uploaded a photo, do NOT overwrite it with the old/empty profile_pic from formData
+      if (photoFile) {
+        delete updates.profile_pic;
+      }
+
+      const result = await updateProfile(updates);
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        setIsProfileOpen(false);
+        setPhotoFile(null);
+        setPhotoPreview(null);
+      }
+    } catch (error) {
+      console.error("Profile update error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile picture",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const profilePhotoUrl = photoPreview || (user?.profile_pic ? `${API_BASE_URL}${user.profile_pic}` : undefined);
 
   return (
     <SidebarProvider>
@@ -116,16 +182,12 @@ export function YouthLayout({ children }: YouthLayoutProps) {
                 {/* Enhanced user dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 xs:h-9 xs:w-9 md:h-10 md:w-10 touch:h-11 touch:w-11 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      aria-label="User menu"
-                    >
-                      <div className="w-full h-full rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs xs:text-sm font-medium hover:bg-primary/90 transition-colors">
-                        {user?.full_name?.charAt(0).toUpperCase() || "U"}
-                      </div>
-                    </Button>
+                    <Avatar className="h-8 w-8 xs:h-9 xs:w-9 md:h-10 md:w-10 touch:h-11 touch:w-11 cursor-pointer hover:opacity-90 transition-opacity">
+                      <AvatarImage src={profilePhotoUrl} alt={user?.full_name || "Youth Member"} className="object-cover" />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {user?.full_name?.charAt(0).toUpperCase() || "Y"}
+                      </AvatarFallback>
+                    </Avatar>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56 touch:w-64">
                     <DropdownMenuLabel>
@@ -219,19 +281,45 @@ export function YouthLayout({ children }: YouthLayoutProps) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="profile_pic" className="text-sm font-medium">
-                  Profile Picture URL
-                </Label>
-                <Input
-                  id="profile_pic"
-                  name="profile_pic"
-                  type="url"
-                  value={formData.profile_pic || ""}
-                  onChange={handleInputChange}
-                  className="w-full touch:h-12"
-                  placeholder="https://example.com/image.jpg"
-                />
+              <div className="space-y-4">
+                <Label className="text-sm font-medium">Profile Picture</Label>
+                <div className="flex flex-col items-center gap-4 p-4 border rounded-lg bg-muted/10">
+                  <Avatar className="h-24 w-24 border-4 border-background shadow-md">
+                    <AvatarImage src={profilePhotoUrl} alt="Profile Preview" className="object-cover" />
+                    <AvatarFallback className="text-2xl">{user?.full_name?.charAt(0) || "Y"}</AvatarFallback>
+                  </Avatar>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Upload Photo
+                    </Button>
+                    {(photoPreview || user?.profile_pic) && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleRemovePhoto}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                  />
+                  <p className="text-xs text-muted-foreground text-center">
+                    JPG, PNG or WEBP. Max 5MB.
+                  </p>
+                </div>
               </div>
 
               {/* Read-only youth information */}

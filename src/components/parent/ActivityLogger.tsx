@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus,
@@ -79,6 +80,14 @@ interface Activity {
   category: "Spiritual" | "Social";
   type: string;
   description: string | null;
+  location?: string | null;
+  platform?: string | null;
+  days?: string | null;
+  preachers?: string | null;
+  speakers?: string | null;
+  budget?: number | null;
+  logistics?: string | null;
+  is_recurring_monthly?: boolean | null;
 }
 
 interface ActivityCheckinSessionOut {
@@ -256,6 +265,12 @@ const SPIRITUAL_TYPES = [
   "Overnights",
   "Crusades",
   "Agape events",
+  "Retreats",
+  "Fellowship",
+  "Bible Study",
+  "Morning Glory",
+  "3 Hours of Prayer",
+  "Conference",
 ];
 
 const SOCIAL_TYPES = [
@@ -264,6 +279,10 @@ const SOCIAL_TYPES = [
   "Bereavements",
   "Weddings",
   "Transfers",
+  "Sports Activities",
+  "Evangelization",
+  "Picnic/Dinner",
+  "Community Awareness",
 ];
 
 export function ActivityLogger({
@@ -358,6 +377,14 @@ export function ActivityLogger({
         category,
         type: formData.type,
         description: formData.description || null,
+        location: formData.location || null,
+        platform: formData.platform || null,
+        days: formData.days || null,
+        preachers: formData.preachers || null,
+        speakers: formData.speakers || null,
+        budget: formData.budget ? Number(formData.budget) : null,
+        logistics: formData.logistics || null,
+        is_recurring_monthly: Boolean(formData.is_recurring_monthly),
       };
 
       if (editingActivity) {
@@ -492,6 +519,17 @@ export function ActivityLogger({
       end_time: activity.end_time || "",
       type: activity.type,
       description: activity.description || "",
+      location: activity.location || "",
+      platform: activity.platform || "",
+      days: activity.days || "",
+      preachers: activity.preachers || "",
+      speakers: activity.speakers || "",
+      budget:
+        activity.budget === null || activity.budget === undefined
+          ? ""
+          : String(activity.budget),
+      logistics: activity.logistics || "",
+      is_recurring_monthly: Boolean(activity.is_recurring_monthly),
     });
     setIsDialogOpen(true);
   };
@@ -529,6 +567,14 @@ export function ActivityLogger({
       end_time: "",
       type: "",
       description: "",
+      location: "",
+      platform: "",
+      days: "",
+      preachers: "",
+      speakers: "",
+      budget: "",
+      logistics: "",
+      is_recurring_monthly: false,
     });
     setEditingActivity(null);
   };
@@ -566,7 +612,28 @@ export function ActivityLogger({
     end_time: "",
     type: "",
     description: "",
+    location: "",
+    platform: "",
+    days: "",
+    preachers: "",
+    speakers: "",
+    budget: "",
+    logistics: "",
+    is_recurring_monthly: false,
   });
+
+  const isCrusade = formData.type === "Crusades";
+  const isMorningGlory = formData.type === "Morning Glory";
+  const isSports = formData.type === "Sports Activities";
+  const isThreeHoursPrayer = formData.type === "3 Hours of Prayer";
+  const needsLocation =
+    isCrusade ||
+    isSports ||
+    formData.type === "Agape events" ||
+    formData.type === "Overnights" ||
+    formData.type === "Retreats" ||
+    formData.type === "Fellowship" ||
+    formData.type === "Evangelization";
 
   const availableTypes =
     category === "Spiritual" ? SPIRITUAL_TYPES : SOCIAL_TYPES;
@@ -898,6 +965,129 @@ export function ActivityLogger({
                     placeholder="Optional details"
                   />
                 </div>
+
+                {needsLocation ? (
+                  <div>
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) =>
+                        setFormData({ ...formData, location: e.target.value })
+                      }
+                      placeholder="Optional"
+                    />
+                  </div>
+                ) : null}
+
+                {isMorningGlory ? (
+                  <div>
+                    <Label htmlFor="platform">Platform</Label>
+                    <Input
+                      id="platform"
+                      value={formData.platform}
+                      onChange={(e) =>
+                        setFormData({ ...formData, platform: e.target.value })
+                      }
+                      placeholder="e.g., WhatsApp, Zoom, Church"
+                    />
+                  </div>
+                ) : null}
+
+                {isCrusade || isMorningGlory || isSports ? (
+                  <div>
+                    <Label htmlFor="days">Day(s)</Label>
+                    <Input
+                      id="days"
+                      value={formData.days}
+                      onChange={(e) =>
+                        setFormData({ ...formData, days: e.target.value })
+                      }
+                      placeholder="e.g., Friday, Saturday"
+                    />
+                  </div>
+                ) : null}
+
+                {isCrusade ||
+                formData.type === "Overnights" ||
+                formData.type === "Fellowship" ||
+                formData.type === "Retreats" ? (
+                  <div>
+                    <Label htmlFor="preachers">Preacher(s)</Label>
+                    <Input
+                      id="preachers"
+                      value={formData.preachers}
+                      onChange={(e) =>
+                        setFormData({ ...formData, preachers: e.target.value })
+                      }
+                      placeholder="Optional"
+                    />
+                  </div>
+                ) : null}
+
+                {isCrusade ||
+                formData.type === "Agape events" ||
+                formData.type === "Retreats" ? (
+                  <div>
+                    <Label htmlFor="speakers">Speaker(s)</Label>
+                    <Input
+                      id="speakers"
+                      value={formData.speakers}
+                      onChange={(e) =>
+                        setFormData({ ...formData, speakers: e.target.value })
+                      }
+                      placeholder="Optional"
+                    />
+                  </div>
+                ) : null}
+
+                {isCrusade ||
+                formData.type === "Agape events" ||
+                formData.type === "Retreats" ? (
+                  <div>
+                    <Label htmlFor="budget">Budget</Label>
+                    <Input
+                      id="budget"
+                      type="number"
+                      inputMode="numeric"
+                      value={formData.budget}
+                      onChange={(e) =>
+                        setFormData({ ...formData, budget: e.target.value })
+                      }
+                      placeholder="Optional"
+                    />
+                  </div>
+                ) : null}
+
+                {isCrusade || isSports || formData.type === "Evangelization" ? (
+                  <div>
+                    <Label htmlFor="logistics">Logistics</Label>
+                    <Textarea
+                      id="logistics"
+                      value={formData.logistics}
+                      onChange={(e) =>
+                        setFormData({ ...formData, logistics: e.target.value })
+                      }
+                      placeholder="Optional"
+                    />
+                  </div>
+                ) : null}
+
+                {isThreeHoursPrayer ? (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="is_recurring_monthly"
+                      checked={Boolean(formData.is_recurring_monthly)}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          is_recurring_monthly: checked === true,
+                        })
+                      }
+                    />
+                    <Label htmlFor="is_recurring_monthly">Recurring monthly</Label>
+                  </div>
+                ) : null}
 
                 <div className="flex justify-end gap-2">
                   <Button

@@ -605,7 +605,7 @@ export default function UserManagement() {
                       setFormData({ ...formData, firstName: e.target.value })
                     }
                     required
-                    className="rounded-xl bg-white"
+                    className="rounded-xl"
                   />
                   {formErrors.firstName && (
                     <p className="text-sm text-destructive">
@@ -623,7 +623,7 @@ export default function UserManagement() {
                       setFormData({ ...formData, lastName: e.target.value })
                     }
                     required
-                    className="rounded-xl bg-white"
+                    className="rounded-xl"
                   />
                   {formErrors.lastName && (
                     <p className="text-sm text-destructive">
@@ -643,7 +643,7 @@ export default function UserManagement() {
                         deliveranceName: e.target.value,
                       })
                     }
-                    className="rounded-xl bg-white"
+                    className="rounded-xl"
                   />
                 </div>
 
@@ -680,7 +680,7 @@ export default function UserManagement() {
                       setFormData({ ...formData, email: e.target.value })
                     }
                     required
-                    className="rounded-xl bg-white"
+                    className="rounded-xl"
                   />
                   {formErrors.email && (
                     <p className="text-sm text-destructive">
@@ -698,7 +698,7 @@ export default function UserManagement() {
                       setFormData({ ...formData, phone: e.target.value })
                     }
                     required
-                    className="rounded-xl bg-white"
+                    className="rounded-xl"
                   />
                   {formErrors.phone && (
                     <p className="text-sm text-destructive">
@@ -786,7 +786,7 @@ export default function UserManagement() {
                     })
                   }
                   placeholder="Describe the person's role and responsibilities..."
-                  className="rounded-xl bg-white"
+                  className="rounded-xl"
                   rows={3}
                 />
               </div>
@@ -831,7 +831,7 @@ export default function UserManagement() {
                 placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10 rounded-xl bg-white"
+                className="pl-10 rounded-xl"
               />
             </div>
             <div className="flex gap-2">
@@ -930,144 +930,260 @@ export default function UserManagement() {
               </div>
             ) : (
               <>
-                <ScrollArea className="h-[420px]">
-                  <div className="overflow-x-auto">
-                    <Table className="min-w-[900px]">
-                      <TableHeader className="sticky top-0 bg-background z-10">
-                        <TableRow>
-                          <TableHead className="min-w-[150px]">Name</TableHead>
-                          <TableHead className="min-w-[200px]">
-                            Email
-                          </TableHead>
-                          <TableHead className="min-w-[120px]">
-                            Family
-                          </TableHead>
-                          <TableHead className="min-w-[100px]">
-                            Category
-                          </TableHead>
-                          <TableHead className="min-w-[80px]">
-                            Role
-                          </TableHead>
-                          <TableHead className="min-w-[120px]">
-                            Last Updated
-                          </TableHead>
-                          <TableHead className="w-[70px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {currentUsers.length > 0 ? (
-                          currentUsers.map((user) => (
-                            <TableRow key={user.id}>
-                              <TableCell className="font-medium">
-                                <div>
-                                  <p className="font-medium">
-                                    {user.fullName}
-                                  </p>
-                                  {user.deliverance_name && (
-                                    <p className="text-sm text-muted-foreground">
-                                      Deliverance name: {user.deliverance_name}
+                <div className="md:hidden p-4 space-y-3">
+                  {currentUsers.length > 0 ? (
+                    currentUsers.map((user) => (
+                      <div
+                        key={user.id}
+                        className="rounded-xl border bg-background p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">
+                              {user.fullName}
+                            </div>
+                            {user.deliverance_name && (
+                              <div className="text-sm text-muted-foreground truncate">
+                                Deliverance name: {user.deliverance_name}
+                              </div>
+                            )}
+                            <div className="text-sm text-muted-foreground truncate">
+                              {user.phone}
+                            </div>
+                            <div className="text-sm text-muted-foreground truncate">
+                              {user.email}
+                            </div>
+                          </div>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="z-50"
+                            >
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUserForPasswordReset(user);
+                                  setIsResetPasswordDialogOpen(true);
+                                }}
+                              >
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Reset Password
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(user)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(user.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground">Family</span>
+                            <span className="font-medium truncate">
+                              {user.family_name
+                                ? `${user.family_name} family`
+                                : "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground">Category</span>
+                            <Badge
+                              variant={
+                                user.family_category === "Mature"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {user.family_category || "N/A"}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground">Role</span>
+                            <Badge
+                              variant={
+                                user.role === "admin"
+                                  ? "destructive"
+                                  : user.role === "Mère" || user.role === "Père"
+                                    ? "default"
+                                    : "outline"
+                              }
+                            >
+                              {user.role != "Other" ? user.role : "Youth member"}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground">Updated</span>
+                            <span className="text-muted-foreground">
+                              {formatDate(user.updated_at)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="h-64 flex items-center justify-center">
+                      <p className="text-muted-foreground">No users found</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="hidden md:block">
+                  <ScrollArea className="h-[420px]">
+                    <div className="overflow-x-auto">
+                      <Table className="min-w-[900px]">
+                        <TableHeader className="sticky top-0 bg-background z-10">
+                          <TableRow>
+                            <TableHead className="min-w-[150px]">Name</TableHead>
+                            <TableHead className="min-w-[200px]">
+                              Email
+                            </TableHead>
+                            <TableHead className="min-w-[120px]">
+                              Family
+                            </TableHead>
+                            <TableHead className="min-w-[100px]">
+                              Category
+                            </TableHead>
+                            <TableHead className="min-w-[80px]">
+                              Role
+                            </TableHead>
+                            <TableHead className="min-w-[120px]">
+                              Last Updated
+                            </TableHead>
+                            <TableHead className="w-[70px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {currentUsers.length > 0 ? (
+                            currentUsers.map((user) => (
+                              <TableRow key={user.id}>
+                                <TableCell className="font-medium">
+                                  <div>
+                                    <p className="font-medium">
+                                      {user.fullName}
                                     </p>
-                                  )}
-                                  <p className="text-sm text-muted-foreground">
-                                    {user.phone}
-                                  </p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {user.email}
-                              </TableCell>
-                              <TableCell>
-                                {user.family_name
-                                  ? `${user.family_name} family - (${user.family_category})`
-                                  : "N/A"}
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    user.family_category === "Mature"
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                >
-                                  {user.family_category || "N/A"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    user.role === "admin"
-                                      ? "destructive"
-                                      : user.role === "Mère" ||
-                                          user.role === "Père"
+                                    {user.deliverance_name && (
+                                      <p className="text-sm text-muted-foreground">
+                                        Deliverance name: {user.deliverance_name}
+                                      </p>
+                                    )}
+                                    <p className="text-sm text-muted-foreground">
+                                      {user.phone}
+                                    </p>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {user.email}
+                                </TableCell>
+                                <TableCell>
+                                  {user.family_name
+                                    ? `${user.family_name} family - (${user.family_category})`
+                                    : "N/A"}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      user.family_category === "Mature"
                                         ? "default"
-                                        : "outline"
-                                  }
-                                >
-                                  {user.role != "Other"
-                                    ? user.role
-                                    : "Youth member"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <span className="text-sm text-muted-foreground">
-                                  {formatDate(user.updated_at)}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent
-                                    align="end"
-                                    className="bg-white z-50"
+                                        : "secondary"
+                                    }
                                   >
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedUserForPasswordReset(user);
-                                        setIsResetPasswordDialogOpen(true);
-                                      }}
+                                    {user.family_category || "N/A"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      user.role === "admin"
+                                        ? "destructive"
+                                        : user.role === "Mère" ||
+                                            user.role === "Père"
+                                          ? "default"
+                                          : "outline"
+                                    }
+                                  >
+                                    {user.role != "Other"
+                                      ? user.role
+                                      : "Youth member"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-sm text-muted-foreground">
+                                    {formatDate(user.updated_at)}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                      align="end"
+                                      className="z-50"
                                     >
-                                      <RefreshCw className="h-4 w-4 mr-2" />
-                                      Reset Password
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleEdit(user)}
-                                    >
-                                      <Edit className="h-4 w-4 mr-2" />
-                                      Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleDelete(user.id)}
-                                      className="text-destructive"
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedUserForPasswordReset(user);
+                                          setIsResetPasswordDialogOpen(true);
+                                        }}
+                                      >
+                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                        Reset Password
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleEdit(user)}
+                                      >
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleDelete(user.id)}
+                                        className="text-destructive"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={7} className="h-64 text-center">
+                                <p className="text-muted-foreground">
+                                  No users found
+                                </p>
                               </TableCell>
                             </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={7} className="h-64 text-center">
-                              <p className="text-muted-foreground">
-                                No users found
-                              </p>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </ScrollArea>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </ScrollArea>
+                </div>
 
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-4 border-t">

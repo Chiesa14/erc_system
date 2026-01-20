@@ -53,10 +53,12 @@ import type { DateRange } from "react-day-picker";
 
 // Interface for the FamilyStats response
 interface AgeDistribution {
-  zero_to_twelve: number;
-  thirteen_to_eighteen: number;
-  nineteen_to_twenty_five: number;
-  thirty_five_plus: number;
+  twenty_to_twenty_two: number;
+  twenty_three_to_twenty_five: number;
+  twenty_six_to_thirty: number;
+  thirty_one_to_thirty_five: number;
+  thirty_six_to_forty: number;
+  forty_plus: number;
 }
 
 interface MonthlyTrend {
@@ -68,6 +70,7 @@ interface FamilyStats {
   total_members: number;
   monthly_members: number;
   bcc_graduate: number;
+  bcc_graduate_percentage: number;
   active_events: number;
   weekly_events: number;
   engagement: number;
@@ -128,6 +131,12 @@ export default function ParentDashboard() {
     useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const bccGraduatePercent =
+    stats?.bcc_graduate_percentage ??
+    (stats && stats.total_members > 0
+      ? Math.round((stats.bcc_graduate / stats.total_members) * 1000) / 10
+      : 0);
 
   // Fetch family stats
   useEffect(() => {
@@ -313,30 +322,42 @@ export default function ParentDashboard() {
     : 0;
 
   // Prepare chart data
-  const membersByAge = stats?.age_distribution
+  const ageDistributionData = stats
     ? [
         {
-          name: "0-12",
-          value: stats.age_distribution.zero_to_twelve,
+          name: "20-22",
+          value: stats.age_distribution.twenty_to_twenty_two,
           color: "hsl(var(--chart-1))",
         },
         {
-          name: "13-18",
-          value: stats.age_distribution.thirteen_to_eighteen,
+          name: "23-25",
+          value: stats.age_distribution.twenty_three_to_twenty_five,
           color: "hsl(var(--chart-2))",
         },
         {
-          name: "19-25",
-          value: stats.age_distribution.nineteen_to_twenty_five,
+          name: "26-30",
+          value: stats.age_distribution.twenty_six_to_thirty,
           color: "hsl(var(--chart-3))",
         },
         {
-          name: "35+",
-          value: stats.age_distribution.thirty_five_plus,
+          name: "31-35",
+          value: stats.age_distribution.thirty_one_to_thirty_five,
           color: "hsl(var(--chart-4))",
+        },
+        {
+          name: "36-40",
+          value: stats.age_distribution.thirty_six_to_forty,
+          color: "hsl(var(--chart-5))",
+        },
+        {
+          name: "40+",
+          value: stats.age_distribution.forty_plus,
+          color: "hsl(var(--chart-6))",
         },
       ].filter((entry) => entry.value > 0) // Filter out age ranges with 0 value
     : [];
+
+  const membersByAge = ageDistributionData;
 
   const activityTypeStatusData = activityTypeStatusSummary;
 
@@ -434,10 +455,10 @@ export default function ParentDashboard() {
             </div>
             <p className="text-2xs xs:text-xs text-muted-foreground flex items-center gap-1">
               <Award className="w-3 h-3 flex-shrink-0" />
-              <span className="truncate">Completed program</span>
+              <span className="truncate">Completed program ({bccGraduatePercent}%)</span>
             </p>
             <Progress
-              value={(stats.bcc_graduate / stats.total_members) * 100}
+              value={bccGraduatePercent}
               className="mt-2 xs:mt-2 md:mt-3 h-1.5 xs:h-2"
             />
           </CardContent>

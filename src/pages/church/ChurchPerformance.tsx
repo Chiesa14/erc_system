@@ -39,6 +39,16 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, apiGet } from "@/lib/api";
 import { formatDate, formatRelativeTime } from "@/lib/datetime";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 // TypeScript interfaces for the analytics data
 interface OverallMetrics {
@@ -81,6 +91,16 @@ interface AnalyticsData {
   family_metrics: FamilyMetric[];
 }
 
+interface CommissionCount {
+  commission: string;
+  count: number;
+}
+
+interface CommissionDistribution {
+  overall: CommissionCount[];
+  by_category: Record<string, CommissionCount[]>;
+}
+
 export default function ChurchPerformance() {
   const { toast } = useToast();
   const { token } = useAuth();
@@ -90,8 +110,10 @@ export default function ChurchPerformance() {
     null
   );
   const [insights, setInsights] = useState<PerformanceInsights | null>(null);
+  const [commissionDist, setCommissionDist] = useState<CommissionDistribution | null>(null);
   const [loading, setLoading] = useState(true);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [commissionsLoading, setCommissionsLoading] = useState(false);
 
   // Filter states
   const [startDate, setStartDate] = useState("");
@@ -161,6 +183,22 @@ export default function ChurchPerformance() {
     }
   }, [token, startDate, endDate]);
 
+  const fetchCommissions = useCallback(async () => {
+    if (!token) return;
+    try {
+      setCommissionsLoading(true);
+      const data = await apiGet<CommissionDistribution>(
+        API_ENDPOINTS.analytics.commissions
+      );
+      setCommissionDist(data);
+    } catch (error: any) {
+      console.error("Error fetching commissions:", error);
+      // Keep silent; charts are optional.
+    } finally {
+      setCommissionsLoading(false);
+    }
+  }, [token]);
+
   // Export analytics data
   const handleExport = async () => {
     if (!token) return;
@@ -215,8 +253,9 @@ export default function ChurchPerformance() {
     if (token && startDate && endDate) {
       fetchAnalytics();
       fetchInsights();
+      fetchCommissions();
     }
-  }, [fetchAnalytics, fetchInsights, token, startDate, endDate]);
+  }, [fetchAnalytics, fetchInsights, fetchCommissions, token, startDate, endDate]);
 
   // Helper functions
   const getTrendIcon = (trend: string) => {
@@ -365,6 +404,7 @@ export default function ChurchPerformance() {
             onClick={() => {
               fetchAnalytics();
               fetchInsights();
+              fetchCommissions();
             }}
             className="gap-2"
           >
@@ -450,6 +490,48 @@ export default function ChurchPerformance() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Commission Distribution */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Commission Distribution
+          </CardTitle>
+          <CardDescription>
+            Breakdown of youth members by commission (overall)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {commissionsLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <p className="text-muted-foreground">Loading commissions...</p>
+              </div>
+            </div>
+          ) : commissionDist && commissionDist.overall.length > 0 ? (
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={commissionDist.overall}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="commission"
+                  interval={0}
+                  angle={-25}
+                  textAnchor="end"
+                  height={70}
+                />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#8884d8" name="Members" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-muted-foreground">No commission data available.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="families" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">

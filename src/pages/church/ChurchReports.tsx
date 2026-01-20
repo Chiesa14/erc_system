@@ -43,6 +43,20 @@ import {
 } from "@/components/ui/dialog";
 import { ReportViewer } from "@/components/documents/ReportViewer";
 
+interface SharedDocument {
+  id: number;
+  name: string;
+  size: number;
+  mime_type: string | null;
+  uploaded_by: number | null;
+  uploaded_at: string;
+  is_flyer: boolean;
+  is_public: boolean;
+  downloads: number;
+  description: string | null;
+  original_filename: string;
+}
+
 interface Family {
   id: number;
   category: string;
@@ -87,6 +101,7 @@ export default function ChurchReports() {
   const { toast } = useToast();
   const { token } = useAuth();
   const [reports, setReports] = useState<FamilyDocument[]>([]);
+  const [templates, setTemplates] = useState<SharedDocument[]>([]);
   const [stats, setStats] = useState<DocumentStats>({
     total_documents: 0,
     total_reports: 0,
@@ -98,15 +113,25 @@ export default function ChurchReports() {
     top_families: [],
   });
   const [loading, setLoading] = useState(true);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
 
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [templateUploading, setTemplateUploading] = useState(false);
+  const [templateActivityName, setTemplateActivityName] = useState("");
+  const [templateFile, setTemplateFile] = useState<File | null>(null);
+
   const [viewDocOpen, setViewDocOpen] = useState(false);
   const [viewDoc, setViewDoc] = useState<FamilyDocument | null>(null);
 
   const baseUrl = buildApiUrl(API_ENDPOINTS.families.documents);
+  const sharedDocsBaseUrl = buildApiUrl(API_ENDPOINTS.documents.shared);
+
+  const TEMPLATE_PREFIX = "TEMPLATE:";
 
   const fetchReports = useCallback(async () => {
     try {
@@ -132,6 +157,35 @@ export default function ChurchReports() {
     }
   }, [toast, token]);
 
+  const fetchTemplates = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      setTemplatesLoading(true);
+      const response = await axios.get(`${sharedDocsBaseUrl}/standalone`, {
+        params: {
+          page: 1,
+          per_page: 50,
+          search: TEMPLATE_PREFIX,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setTemplates(response.data?.documents || []);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch templates",
+        variant: "destructive",
+      });
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, [sharedDocsBaseUrl, toast, token]);
+
   const fetchStats = useCallback(async () => {
     try {
       const response = await axios.get(`${baseUrl}/admin/stats/global`, {
@@ -154,8 +208,107 @@ export default function ChurchReports() {
     if (token) {
       fetchReports();
       fetchStats();
+      fetchTemplates();
     }
-  }, [fetchReports, fetchStats, token]);
+  }, [fetchReports, fetchStats, fetchTemplates, token]);
+
+  const parseTemplateActivityName = (doc: SharedDocument): string => {
+    const desc = (doc.description || "").trim();
+    if (!desc.toUpperCase().startsWith(TEMPLATE_PREFIX)) return "";
+    return desc.slice(TEMPLATE_PREFIX.length).trim();
+  };
+
+  const filteredTemplates = templates.filter((t) => {
+    const q = templateSearch.trim().toLowerCase();
+    if (!q) return true;
+    const activityName = parseTemplateActivityName(t).toLowerCase();
+    const hay = `${t.original_filename} ${t.name} ${activityName}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  const handleUploadTemplate = async () => {
+    if (!token) return;
+    if (!templateFile) {
+      toast({
+        title: "Error",
+        description: "Please choose a file",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!templateActivityName.trim()) {
+      toast({
+        title: "Error",
+        description: "Activity name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setTemplateUploading(true);
+      const form = new FormData();
+      form.append("file", templateFile);
+      form.append("description", `${TEMPLATE_PREFIX} ${templateActivityName.trim()}`);
+      form.append("is_public", "true");
+
+      await axios.post(`${sharedDocsBaseUrl}/upload`, form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      toast({
+        title: "Uploaded",
+        description: "Template uploaded successfully",
+      });
+
+      setTemplateDialogOpen(false);
+      setTemplateActivityName("");
+      setTemplateFile(null);
+      await fetchTemplates();
+    } catch (error: any) {
+      console.error("Error uploading template:", error);
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.detail || "Failed to upload template",
+        variant: "destructive",
+      });
+    } finally {
+      setTemplateUploading(false);
+    }
+  };
+
+  const handleDownloadTemplate = async (docId: number, filename: string) => {
+    if (!token) return;
+    try {
+      const response = await axios.get(`${sharedDocsBaseUrl}/${docId}/download`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error("Error downloading template:", error);
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.detail || "Failed to download template",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleDownloadDocument = async (docId: number, filename: string) => {
     try {
@@ -280,9 +433,10 @@ export default function ChurchReports() {
       </div>
 
       <Tabs defaultValue="reports" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="reports">All Reports</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="analytics" className="space-y-6">
@@ -557,6 +711,135 @@ export default function ChurchReports() {
               ))
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Activity Report Templates</h2>
+              <p className="text-muted-foreground">
+                Church-wide templates (shared documents)
+              </p>
+            </div>
+            <Button
+              className="bg-primary hover:bg-primary/90 gap-2"
+              onClick={() => setTemplateDialogOpen(true)}
+            >
+              <FileText className="h-4 w-4" />
+              Upload Template
+            </Button>
+          </div>
+
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search templates (activity name / filename)..."
+                    value={templateSearch}
+                    onChange={(e) => setTemplateSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Button variant="outline" onClick={fetchTemplates}>
+                  Refresh
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4">
+            {templatesLoading ? (
+              <p className="text-center text-muted-foreground">
+                Loading templates...
+              </p>
+            ) : filteredTemplates.length === 0 ? (
+              <p className="text-center text-muted-foreground">
+                No templates found
+              </p>
+            ) : (
+              filteredTemplates.map((t) => (
+                <Card
+                  key={t.id}
+                  className="border-0 shadow-lg bg-gradient-to-br from-card to-muted/5 hover:shadow-xl transition-shadow"
+                >
+                  <CardContent className="p-6">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <FileText className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg">
+                            {parseTemplateActivityName(t) || "Template"}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {t.original_filename}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Uploaded: {formatDate(t.uploaded_at)} ({formatRelativeTime(t.uploaded_at)})
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleDownloadTemplate(t.id, t.original_filename)
+                          }
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+
+          <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Upload Template</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Activity name</label>
+                  <Input
+                    value={templateActivityName}
+                    onChange={(e) => setTemplateActivityName(e.target.value)}
+                    placeholder="e.g., Crusades"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Template file</label>
+                  <Input
+                    type="file"
+                    onChange={(e) =>
+                      setTemplateFile(e.target.files?.[0] || null)
+                    }
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={templateUploading}
+                    onClick={() => setTemplateDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button disabled={templateUploading} onClick={handleUploadTemplate}>
+                    {templateUploading ? "Uploading..." : "Upload"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
 

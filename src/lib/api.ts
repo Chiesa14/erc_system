@@ -142,6 +142,7 @@ export const API_ENDPOINTS = {
     performance: "/analytics/performance",
     insights: "/analytics/insights",
     export: "/analytics/export",
+    commissions: "/analytics/commissions",
   },
 
   //dashbaords

@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Users, MessageSquare, Calendar, Star, Activity } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Users, MessageSquare, Calendar, Star, Activity, User as UserIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +29,8 @@ interface Family {
   category: string;
   pere: string | null;
   mere: string | null;
+  pere_pic: string | null;
+  mere_pic: string | null;
   members: string[];
   activities: {
     id: number;
@@ -47,6 +50,12 @@ export default function YouthFamilies() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const resolvePhotoUrl = (path?: string | null) => {
+    if (!path) return undefined;
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    return buildApiUrl(path);
+  };
 
   // Fetch families from the backend
   useEffect(() => {
@@ -128,9 +137,41 @@ export default function YouthFamilies() {
                       <h3 className="font-semibold text-lg">
                         {family.name} Family - {family.category}
                       </h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Led by {family.pere || family.mere || "Unknown Leader"}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1 mb-2">
+                        <span className="text-sm text-muted-foreground">Led by:</span>
+                        <div className="flex items-center -space-x-2">
+                          {family.pere && (
+                            <div className="relative group/avatar">
+                              <Avatar className="h-6 w-6 border-2 border-background">
+                                <AvatarImage src={resolvePhotoUrl(family.pere_pic)} alt={family.pere} />
+                                <AvatarFallback className="text-[10px] bg-blue-100 text-blue-700">
+                                  {family.pere.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded shadow-md opacity-0 group-hover/avatar:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                Pere: {family.pere}
+                              </span>
+                            </div>
+                          )}
+                          {family.mere && (
+                            <div className="relative group/avatar">
+                              <Avatar className="h-6 w-6 border-2 border-background">
+                                <AvatarImage src={resolvePhotoUrl(family.mere_pic)} alt={family.mere} />
+                                <AvatarFallback className="text-[10px] bg-pink-100 text-pink-700">
+                                  {family.mere.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded shadow-md opacity-0 group-hover/avatar:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                Mere: {family.mere}
+                              </span>
+                            </div>
+                          )}
+                          {!family.pere && !family.mere && (
+                            <span className="text-sm text-muted-foreground italic">Unknown Leader</span>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="mb-2">
                         <p className="text-xs font-medium text-foreground">
                           Family Members:
@@ -152,8 +193,8 @@ export default function YouthFamilies() {
                           Last activity:{" "}
                           {family.last_activity_date
                             ? `${formatDate(family.last_activity_date)} (${formatRelativeTime(
-                                family.last_activity_date
-                              )})`
+                              family.last_activity_date
+                            )})`
                             : "None"}
                         </span>
                       </div>
@@ -216,11 +257,39 @@ export default function YouthFamilies() {
                   <h4 className="text-sm font-semibold text-foreground">
                     Leaders
                   </h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {selectedFamily.pere ||
-                      selectedFamily.mere ||
-                      "Unknown Leader"}
-                  </p>
+                  <div className="flex items-center gap-3 mt-2">
+                    {selectedFamily.pere && (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={selectedFamily.pere_pic || undefined} alt={selectedFamily.pere} />
+                          <AvatarFallback className="bg-blue-100 text-blue-700">
+                            {selectedFamily.pere.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="text-sm">
+                          <p className="font-medium text-foreground">{selectedFamily.pere}</p>
+                          <p className="text-xs text-muted-foreground">Pere</p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedFamily.mere && (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={selectedFamily.mere_pic || undefined} alt={selectedFamily.mere} />
+                          <AvatarFallback className="bg-pink-100 text-pink-700">
+                            {selectedFamily.mere.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="text-sm">
+                          <p className="font-medium text-foreground">{selectedFamily.mere}</p>
+                          <p className="text-xs text-muted-foreground">Mere</p>
+                        </div>
+                      </div>
+                    )}
+                    {!selectedFamily.pere && !selectedFamily.mere && (
+                      <p className="text-sm text-muted-foreground">Unknown Leader</p>
+                    )}
+                  </div>
                 </div>
               </div>
               <div>
@@ -268,13 +337,13 @@ export default function YouthFamilies() {
                           <Badge
                             variant={
                               activity.status === "Ongoing" ||
-                              activity.status === "Planned"
+                                activity.status === "Planned"
                                 ? "default"
                                 : "secondary"
                             }
                             className={
                               activity.status === "Ongoing" ||
-                              activity.status === "Planned"
+                                activity.status === "Planned"
                                 ? "bg-success/20 text-success-foreground border-success/40"
                                 : "bg-muted text-muted-foreground"
                             }
@@ -303,8 +372,8 @@ export default function YouthFamilies() {
                 <p className="text-sm text-muted-foreground mt-1">
                   {selectedFamily.last_activity_date
                     ? `${formatDate(selectedFamily.last_activity_date)} (${formatRelativeTime(
-                        selectedFamily.last_activity_date
-                      )})`
+                      selectedFamily.last_activity_date
+                    )})`
                     : "None"}
                 </p>
               </div>

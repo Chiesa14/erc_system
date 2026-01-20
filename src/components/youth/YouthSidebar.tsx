@@ -18,6 +18,9 @@ import {
   FileText,
   Users,
   GraduationCap,
+  Shield,
+  Music,
+  Network,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -29,6 +32,9 @@ const baseNavigationItems = [
   { title: "Documents", url: "/youth/documents", icon: FileText },
   { title: "BCC Progress", url: "/youth/bcc-progress", icon: GraduationCap },
   { title: "Family Groups", url: "/youth/families", icon: Users },
+  { title: "Anti-Drugs", url: "/youth/anti-drugs", icon: Shield },
+  { title: "Worship Team", url: "/youth/worship-team", icon: Music },
+  { title: "Organization", url: "/youth/organization", icon: Network },
 ];
 
 export function YouthSidebar() {
@@ -47,9 +53,9 @@ export function YouthSidebar() {
 
   const navigationItems = canAccessBccFollowUp
     ? [
-        ...baseNavigationItems,
-        { title: "BCC Follow-up", url: "/youth/bcc", icon: GraduationCap },
-      ]
+      ...baseNavigationItems,
+      { title: "BCC Follow-up", url: "/youth/bcc", icon: GraduationCap },
+    ]
     : baseNavigationItems;
 
   const isActive = (path: string) => {
@@ -70,9 +76,8 @@ export function YouthSidebar() {
 
   return (
     <Sidebar
-      className={`transition-all duration-300 ease-in-out ${
-        collapsed ? "w-12 xs:w-14 md:w-16" : "w-56 xs:w-60 md:w-64"
-      }`}
+      className={`transition-all duration-300 ease-in-out ${collapsed ? "w-12 xs:w-14 md:w-16" : "w-56 xs:w-60 md:w-64"
+        }`}
       collapsible="icon"
       side="left"
     >
@@ -113,9 +118,8 @@ export function YouthSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className={`h-9 xs:h-10 md:h-11 ${
-                      collapsed ? "px-2 xs:px-3" : "px-3 xs:px-4"
-                    } touch:h-12 rounded-xl`}
+                    className={`h-9 xs:h-10 md:h-11 ${collapsed ? "px-2 xs:px-3" : "px-3 xs:px-4"
+                      } touch:h-12 rounded-xl`}
                   >
                     <NavLink
                       to={item.url}

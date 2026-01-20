@@ -38,6 +38,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { API_ENDPOINTS, AuthTokenManager, buildApiUrl } from "@/lib/api";
 
 const memberFormSchema = z.object({
   // Basic Information
@@ -113,6 +114,8 @@ export function MemberRegistrationForm({
 }: MemberRegistrationFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+  const [profilePhotoPreviewUrl, setProfilePhotoPreviewUrl] = useState<string | null>(null);
 
   const form = useForm<MemberFormData>({
     resolver: zodResolver(memberFormSchema),
@@ -155,7 +158,6 @@ export function MemberRegistrationForm({
         parent_guardian_status: data.parent_guardian_status || null,
         parental_status: data.parent_guardian_status !== "None",
         employment_type: data.employment_type || null,
-        employment_status: data.employment_type || null,
         job_title: data.job_title || null,
         organization: data.organization || null,
         business_type: data.business_type || null,
@@ -168,10 +170,9 @@ export function MemberRegistrationForm({
         student_level: data.student_level || null,
       };
 
-      // Get token from localStorage
-      const token = localStorage.getItem("access_token");
+      const token = AuthTokenManager.getToken();
 
-      const response = await fetch("/api/family/family-members/", {
+      const response = await fetch(`${buildApiUrl(API_ENDPOINTS.families.members)}/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -182,6 +183,28 @@ export function MemberRegistrationForm({
 
       if (!response.ok) {
         throw new Error("Failed to add member");
+      }
+
+      const createdMember = await response.json();
+
+      if (profilePhotoFile && createdMember?.id) {
+        const photoFormData = new FormData();
+        photoFormData.append("file", profilePhotoFile);
+
+        const uploadResponse = await fetch(
+          `${buildApiUrl(API_ENDPOINTS.families.members)}/${createdMember.id}/profile-photo`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+            },
+            body: photoFormData,
+          }
+        );
+
+        if (!uploadResponse.ok) {
+          throw new Error("Failed to upload profile photo");
+        }
       }
 
       toast({
@@ -211,6 +234,28 @@ export function MemberRegistrationForm({
             <AccordionTrigger className="text-lg font-semibold">Basic Information</AccordionTrigger>
             <AccordionContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                <div className="space-y-2 md:col-span-2">
+                  <FormLabel>Profile Photo</FormLabel>
+                  <div className="flex flex-col gap-3">
+                    {profilePhotoPreviewUrl && (
+                      <img
+                        src={profilePhotoPreviewUrl}
+                        alt="Profile Preview"
+                        className="h-24 w-24 rounded-full object-cover border"
+                      />
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setProfilePhotoFile(file);
+                        setProfilePhotoPreviewUrl(file ? URL.createObjectURL(file) : null);
+                      }}
+                    />
+                  </div>
+                </div>
+
                 {/* Full Name */}
                 <FormField
                   control={form.control}

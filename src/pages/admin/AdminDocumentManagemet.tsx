@@ -682,7 +682,7 @@ export default function AdminDocumentManagement() {
                 placeholder="Search documents..."
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10 rounded-xl bg-white"
+                className="pl-10 rounded-xl"
               />
             </div>
             <div className="flex gap-2">

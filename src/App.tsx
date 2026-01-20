@@ -28,6 +28,9 @@ import YouthFeedback from "./pages/youth/YouthFeedback";
 import YouthDocuments from "./pages/youth/YouthDocuments";
 import YouthFamilies from "./pages/youth/YouthFamilies";
 import YouthBccFollowUp from "./pages/youth/YouthBccFollowUp";
+import AntiDrugsBrigade from "./pages/youth/AntiDrugsBrigade";
+import WorshipTeam from "./pages/youth/WorshipTeam";
+import YouthOrganization from "./pages/youth/YouthOrganization";
 import YouthBccProgress from "./pages/youth/YouthBccProgress";
 import { ChurchLayout } from "./components/church/ChurchLayout";
 import ChurchDashboard from "./pages/church/ChurchDashboard";
@@ -92,6 +95,9 @@ const App = () => (
                       <Route path="families" element={<YouthFamilies />} />
                       <Route path="bcc-progress" element={<YouthBccProgress />} />
                       <Route path="bcc" element={<YouthBccFollowUp />} />
+                      <Route path="anti-drugs" element={<AntiDrugsBrigade />} />
+                      <Route path="worship-team" element={<WorshipTeam />} />
+                      <Route path="organization" element={<YouthOrganization />} />
                     </Routes>
                   </YouthLayout>
                 </ProtectedRoute>

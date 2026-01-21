@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FileUp, FileText, Download, Upload, Eye } from "lucide-react";
+import { FileUp, FileText, Download, Upload, Eye, FileDown } from "lucide-react";
 import { UploadSection } from "@/components/parent/UploadSection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 import { ReportViewer } from "@/components/documents/ReportViewer";
 import { formatDate, formatRelativeTime } from "@/lib/datetime";
+import { exportHtmlToPdf, exportReactNodeToPdf } from "@/lib/pdf";
 
 const BASE_URL = buildApiUrl(API_ENDPOINTS.families.documents);
 
@@ -109,6 +110,43 @@ export default function Documents() {
 
     fetchStats();
   }, [token, user, toast]);
+
+  const handleExportPdf = async (docId: number) => {
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Authentication token is missing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${BASE_URL}/${docId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const doc = response.data as Document;
+
+      const name = doc.title || doc.original_filename || "document";
+      if (doc.type === "letter") {
+        await exportHtmlToPdf(doc.content_html || "", name);
+      } else {
+        await exportReactNodeToPdf(
+          <div className="space-y-4">
+            <div className="text-xl font-semibold">{name}</div>
+            <ReportViewer contentJson={doc.content_json} />
+          </div>,
+          name
+        );
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to export PDF.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleView = async (docId: number) => {
     if (!token) {
@@ -388,13 +426,22 @@ export default function Documents() {
                         {doc.status}
                       </Badge>
                       {doc.storage_type === "structured" ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleView(doc.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleView(doc.id)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleExportPdf(doc.id)}
+                          >
+                            <FileDown className="h-4 w-4" />
+                          </Button>
+                        </>
                       ) : (
                         <Button
                           variant="ghost"

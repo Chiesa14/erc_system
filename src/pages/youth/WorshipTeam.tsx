@@ -72,7 +72,7 @@ interface WorshipTeamSong {
 }
 
 export default function WorshipTeam() {
-    const [activeTab, setActiveTab] = useState("overview");
+    const [activeTab, setActiveTab] = useState("activities");
     const { toast } = useToast();
     const { user } = useAuth();
 
@@ -186,6 +186,32 @@ export default function WorshipTeam() {
         });
         setActivityDialogOpen(true);
     }, []);
+
+    const openScheduleRehearsal = useCallback(() => {
+        if (!canManage) {
+            toast({
+                title: "Not allowed",
+                description:
+                    "Only Youth Leader/Committee, Admin, or Pastor can schedule rehearsals.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setEditingActivity(null);
+        setActivityDraft({
+            title: "Rehearsal",
+            type: "Rehearsal",
+            frequency: "Weekly",
+            date: "",
+            schedule_text: "",
+            location: "",
+            status: "Planned",
+            participants: "",
+            outcome: "",
+        });
+        setActivityDialogOpen(true);
+    }, [canManage, toast]);
 
     const openEditActivity = useCallback((activity: WorshipActivity) => {
         setEditingActivity(activity);
@@ -467,7 +493,11 @@ export default function WorshipTeam() {
                         Leading the congregation in praise and worship
                     </p>
                 </div>
-                <Button className="rounded-xl">
+                <Button
+                    className="rounded-xl"
+                    onClick={openScheduleRehearsal}
+                    disabled={!canManage}
+                >
                     <Plus className="h-4 w-4 mr-2" />
                     Schedule Rehearsal
                 </Button>
@@ -531,10 +561,7 @@ export default function WorshipTeam() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4 rounded-xl">
-                    <TabsTrigger value="overview" className="rounded-lg">
-                        Overview
-                    </TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 rounded-xl">
                     <TabsTrigger value="activities" className="rounded-lg">
                         Activities
                     </TabsTrigger>
@@ -545,68 +572,6 @@ export default function WorshipTeam() {
                         Repertoire
                     </TabsTrigger>
                 </TabsList>
-
-                {/* Overview Tab */}
-                <TabsContent value="overview" className="space-y-6">
-                    <Card className="rounded-2xl">
-                        <CardHeader>
-                            <CardTitle>About the Worship Team</CardTitle>
-                            <CardDescription>
-                                Our mission and ministry approach
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-muted-foreground">
-                                The Worship Team is dedicated to leading the congregation into the
-                                presence of God through anointed praise and worship. Our team consists
-                                of vocalists, instrumentalists, and technical crew who work together
-                                to create an atmosphere for encounter with God.
-                            </p>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="p-4 bg-muted/50 rounded-xl">
-                                    <h4 className="font-semibold flex items-center gap-2 mb-2">
-                                        <Music className="h-4 w-4" />
-                                        Sunday Worship
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Leading worship during the main Sunday service with a blend
-                                        of contemporary and traditional songs.
-                                    </p>
-                                </div>
-                                <div className="p-4 bg-muted/50 rounded-xl">
-                                    <h4 className="font-semibold flex items-center gap-2 mb-2">
-                                        <Calendar className="h-4 w-4" />
-                                        Special Events
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Providing worship for conferences, retreats, and special
-                                        church events throughout the year.
-                                    </p>
-                                </div>
-                                <div className="p-4 bg-muted/50 rounded-xl">
-                                    <h4 className="font-semibold flex items-center gap-2 mb-2">
-                                        <Users className="h-4 w-4" />
-                                        Training & Development
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Regular rehearsals and training sessions to develop musical
-                                        skills and spiritual depth.
-                                    </p>
-                                </div>
-                                <div className="p-4 bg-muted/50 rounded-xl">
-                                    <h4 className="font-semibold flex items-center gap-2 mb-2">
-                                        <Mic className="h-4 w-4" />
-                                        Youth Integration
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Mentoring young musicians and giving them opportunities to
-                                        serve in the worship ministry.
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
 
                 {/* Activities Tab */}
                 <TabsContent value="activities" className="space-y-6">

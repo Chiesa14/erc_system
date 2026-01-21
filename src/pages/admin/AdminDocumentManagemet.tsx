@@ -68,6 +68,7 @@ import {
   Filter,
   MoreHorizontal,
   Download,
+  FileDown,
   Trash2,
   Edit,
   Clock,
@@ -78,6 +79,7 @@ import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { API_ENDPOINTS, buildApiUrl } from "@/lib/api";
 import { ReportViewer } from "@/components/documents/ReportViewer";
+import { exportHtmlToPdf, exportReactNodeToPdf } from "@/lib/pdf";
 
 interface Family {
   id: number;
@@ -96,7 +98,7 @@ interface FamilyDocument {
   uploaded_at: string;
   created_at: string;
   updated_at: string;
-  family: Family;
+  family?: Family;
   storage_type?: "file" | "structured";
   title?: string | null;
   content_json?: string | null;
@@ -242,6 +244,113 @@ export default function AdminDocumentManagement() {
   const baseUrl = buildApiUrl(API_ENDPOINTS.families.documents);
   const familiesUrl = buildApiUrl(API_ENDPOINTS.families.base);
 
+  const hydrateDocFamily = useCallback(
+    async (doc: FamilyDocument): Promise<FamilyDocument> => {
+      if (doc.family?.name) return doc;
+      if (!doc.family_id) return doc;
+
+      const familyResponse = await axios.get(`${familiesUrl}/${doc.family_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return {
+        ...doc,
+        family: familyResponse.data as Family,
+      };
+    },
+    [familiesUrl, token]
+  );
+
+  const toFilenameDateTime = (value?: string | null) => {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+  };
+
+  const toTitleCase = (value: string) =>
+    value
+      .replace(/[_-]+/g, " ")
+      .trim()
+      .split(/\s+/g)
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+
+  const getReportTypeLabel = (doc: FamilyDocument) => {
+    if (doc.type !== "report") return "";
+    if (!doc.content_json) return "";
+    try {
+      const parsed =
+        typeof doc.content_json === "string"
+          ? JSON.parse(doc.content_json)
+          : doc.content_json;
+      const raw = parsed?.reportInformation?.reportType;
+      if (!raw) return "";
+
+      const normalized = String(raw).trim().toLowerCase();
+      const map: Record<string, string> = {
+        monthly: "Monthly Report",
+        weekly: "Weekly Report",
+        daily: "Daily Report",
+        quarterly: "Quarterly Report",
+        annual: "Annual Report",
+        yearly: "Yearly Report",
+      };
+
+      if (map[normalized]) return map[normalized];
+      const title = toTitleCase(String(raw));
+      return title.toLowerCase().endsWith("report") ? title : `${title} Report`;
+    } catch {
+      return "";
+    }
+  };
+
+  const handleExportPdf = async (docId: number) => {
+    try {
+      const response = await axios.get(`${baseUrl}/admin/${docId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const doc = await hydrateDocFamily(response.data as FamilyDocument);
+
+      const title = doc.title || doc.original_filename || "document";
+      const reportTypeLabel = getReportTypeLabel(doc);
+      const familyName = doc.family?.name ? String(doc.family.name).trim() : "";
+      const familyPart = familyName ? `${familyName} Family` : "";
+      const reportTime = toFilenameDateTime(doc.uploaded_at || doc.created_at);
+      const titlePart = reportTypeLabel ? `${title} - ${reportTypeLabel}` : title;
+      const filenameBase = familyPart ? `${titlePart} - ${familyPart}` : titlePart;
+      const filename = reportTime ? `${filenameBase} - ${reportTime}` : filenameBase;
+      if (doc.type === "letter") {
+        await exportHtmlToPdf(doc.content_html || "", filename);
+      } else {
+        await exportReactNodeToPdf(
+          <div className="space-y-4">
+            <div className="text-xl font-semibold">{title}</div>
+            <ReportViewer contentJson={doc.content_json} />
+          </div>,
+          filename
+        );
+      }
+    } catch (error: any) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to export PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleViewDocument = async (docId: number) => {
     try {
       const response = await axios.get(`${baseUrl}/admin/${docId}`, {
@@ -249,7 +358,8 @@ export default function AdminDocumentManagement() {
           Authorization: `Bearer ${token}`,
         },
       });
-      setViewDoc(response.data);
+      const hydrated = await hydrateDocFamily(response.data as FamilyDocument);
+      setViewDoc(hydrated);
       setViewDocOpen(true);
     } catch (error: any) {
       console.error("Error loading document:", error);
@@ -550,13 +660,13 @@ export default function AdminDocumentManagement() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
+          {/* <Button
             variant={bulkDeleteMode ? "destructive" : "outline"}
             onClick={() => setBulkDeleteMode(!bulkDeleteMode)}
             className="rounded-2xl"
           >
             {bulkDeleteMode ? "Cancel Bulk" : "Bulk Delete"}
-          </Button>
+          </Button> */}
           {bulkDeleteMode && selectedDocuments.size > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -896,6 +1006,14 @@ export default function AdminDocumentManagement() {
                                       </>
                                     )}
                                   </DropdownMenuItem>
+                                  {doc.storage_type === "structured" && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleExportPdf(doc.id)}
+                                    >
+                                      <FileDown className="h-4 w-4 mr-2" />
+                                      Export PDF
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem
                                     onClick={() => {
                                       setStatusUpdateDocument(doc);
@@ -1087,7 +1205,11 @@ export default function AdminDocumentManagement() {
               {viewDoc?.title || viewDoc?.original_filename || "Document"}
             </DialogTitle>
             <DialogDescription>
-              {viewDoc?.family?.category} - {viewDoc?.family?.name} Family
+              {viewDoc?.family?.category || viewDoc?.family?.name
+                ? `${viewDoc?.family?.category} - ${viewDoc?.family?.name} Family`
+                : viewDoc?.family_id
+                  ? `Family ID: ${viewDoc.family_id}`
+                  : ""}
             </DialogDescription>
           </DialogHeader>
           {viewDoc?.type === "letter" && (

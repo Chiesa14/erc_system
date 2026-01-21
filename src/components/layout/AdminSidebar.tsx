@@ -1,4 +1,12 @@
-import { Users, FileText, Home, Shield, GraduationCap, Music, Network } from "lucide-react";
+import {
+  Users,
+  FileText,
+  Home,
+  Shield,
+  GraduationCap,
+  Music,
+  Network,
+} from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import {
@@ -19,7 +27,7 @@ const navigationItems = [
   { title: "Families", url: "/admin/families", icon: Users },
   { title: "Roles", url: "/admin/roles", icon: Shield },
   { title: "Reports", url: "/admin/reports", icon: FileText },
-  { title: "BCC Follow-up", url: "/admin/bcc", icon: GraduationCap },
+  // { title: "BCC Follow-up", url: "/admin/bcc", icon: GraduationCap },
   { title: "Anti-Drugs", url: "/admin/anti-drugs", icon: Shield },
   { title: "Worship Team", url: "/admin/worship-team", icon: Music },
   { title: "Organization", url: "/admin/organization", icon: Network },

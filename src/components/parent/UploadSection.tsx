@@ -17,6 +17,7 @@ import {
   FileText,
   Download,
   Eye,
+  FileDown,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -54,6 +55,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { ReportViewer } from "@/components/documents/ReportViewer";
+import { exportHtmlToPdf, exportReactNodeToPdf } from "@/lib/pdf";
 
 interface UploadedFile {
   id: number;
@@ -643,6 +645,43 @@ export function UploadSection({ onFilesUploaded }: UploadSectionProps) {
       toast({
         title: "Error",
         description: "Failed to load document.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportPdf = async (fileId: number) => {
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Authentication token is missing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${BASE_URL}/${fileId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const doc = response.data as UploadedFile;
+
+      const name = doc.title || doc.original_filename || "document";
+      if (doc.type === "letter") {
+        await exportHtmlToPdf(doc.content_html || "", name);
+      } else {
+        await exportReactNodeToPdf(
+          <div className="space-y-4">
+            <div className="text-xl font-semibold">{name}</div>
+            <ReportViewer contentJson={doc.content_json} />
+          </div>,
+          name
+        );
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to export PDF.",
         variant: "destructive",
       });
     }
@@ -1792,13 +1831,22 @@ export function UploadSection({ onFilesUploaded }: UploadSectionProps) {
                       </div>
                       <div className="flex items-center gap-2">
                         {file.storage_type === "structured" ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleView(file)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleView(file)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleExportPdf(file.id)}
+                            >
+                              <FileDown className="h-4 w-4" />
+                            </Button>
+                          </>
                         ) : (
                           <Button
                             variant="outline"

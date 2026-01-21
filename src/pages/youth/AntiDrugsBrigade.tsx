@@ -81,7 +81,7 @@ interface AntiDrugsOutreachPlan {
 }
 
 export default function AntiDrugsBrigade() {
-    const [activeTab, setActiveTab] = useState("overview");
+    const [activeTab, setActiveTab] = useState("activities");
     const { toast } = useToast();
     const { user } = useAuth();
 
@@ -555,10 +555,7 @@ export default function AntiDrugsBrigade() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4 rounded-xl">
-                    <TabsTrigger value="overview" className="rounded-lg">
-                        Overview
-                    </TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 rounded-xl">
                     <TabsTrigger value="activities" className="rounded-lg">
                         Activities
                     </TabsTrigger>
@@ -569,68 +566,6 @@ export default function AntiDrugsBrigade() {
                         Outreach
                     </TabsTrigger>
                 </TabsList>
-
-                {/* Overview Tab */}
-                <TabsContent value="overview" className="space-y-6">
-                    <Card className="rounded-2xl">
-                        <CardHeader>
-                            <CardTitle>About the Anti-Drugs Brigade</CardTitle>
-                            <CardDescription>
-                                Our mission and approach to combating drug abuse
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-muted-foreground">
-                                The Anti-Drugs Brigade is a dedicated unit within the Youth Ministry
-                                focused on preventing drug abuse through education, supporting those
-                                affected through rehabilitation partnerships, and building
-                                community awareness through strategic outreach programs.
-                            </p>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="p-4 bg-muted/50 rounded-xl">
-                                    <h4 className="font-semibold flex items-center gap-2 mb-2">
-                                        <Hospital className="h-4 w-4" />
-                                        Rehabilitation Support
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Weekly visits to rehabilitation centers to provide spiritual
-                                        support, prayer, and encouragement to those recovering.
-                                    </p>
-                                </div>
-                                <div className="p-4 bg-muted/50 rounded-xl">
-                                    <h4 className="font-semibold flex items-center gap-2 mb-2">
-                                        <School className="h-4 w-4" />
-                                        High School Programs
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Regular awareness sessions at local high schools to educate
-                                        young people about the dangers of drug abuse.
-                                    </p>
-                                </div>
-                                <div className="p-4 bg-muted/50 rounded-xl">
-                                    <h4 className="font-semibold flex items-center gap-2 mb-2">
-                                        <Megaphone className="h-4 w-4" />
-                                        Community Awareness
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Community-wide campaigns to raise awareness and reduce
-                                        stigma around drug addiction and recovery.
-                                    </p>
-                                </div>
-                                <div className="p-4 bg-muted/50 rounded-xl">
-                                    <h4 className="font-semibold flex items-center gap-2 mb-2">
-                                        <Handshake className="h-4 w-4" />
-                                        Partnerships
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Strategic partnerships with healthcare facilities, schools,
-                                        and community organizations for greater impact.
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
 
                 {/* Activities Tab */}
                 <TabsContent value="activities" className="space-y-6">

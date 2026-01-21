@@ -17,6 +17,7 @@ import {
   MessageSquare,
   FileUp,
   UserPlus,
+  Shield,
 } from "lucide-react";
 
 const navigationItems = [
@@ -26,6 +27,7 @@ const navigationItems = [
   { title: "Communication", url: "/parent/communication", icon: MessageSquare },
   { title: "Documents", url: "/parent/documents", icon: FileUp },
   { title: "Delegation", url: "/parent/delegation", icon: UserPlus },
+  { title: "Anti-Drugs", url: "/parent/anti-drugs", icon: Shield },
 ];
 
 export function ParentSidebar() {

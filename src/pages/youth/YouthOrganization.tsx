@@ -2,7 +2,7 @@ import { OrganizationalChart } from "@/components/shared/OrganizationalChart";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { apiDelete, apiGet, apiPost } from "@/lib/api";
+import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
 import {
     Card,
     CardContent,
@@ -22,7 +22,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2 } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 
 interface SmallCommitteeMember {
     id?: number;
@@ -44,6 +51,19 @@ interface SmallCommittee {
     departments: SmallCommitteeDepartment[];
 }
 
+type OrgLevel = "vision" | "executive" | "leader" | "committee";
+
+interface OrganizationPosition {
+    id: number;
+    level: OrgLevel;
+    name: string;
+    id_name?: string | null;
+    role: string;
+    position: string;
+    photo?: string | null;
+    sort_order?: number | null;
+}
+
 export default function YouthOrganization() {
     const { toast } = useToast();
     const { user } = useAuth();
@@ -57,8 +77,25 @@ export default function YouthOrganization() {
     const [loadingCommittees, setLoadingCommittees] = useState(true);
     const [committees, setCommittees] = useState<SmallCommittee[]>([]);
 
+    const [loadingPositions, setLoadingPositions] = useState(true);
+    const [positions, setPositions] = useState<OrganizationPosition[]>([]);
+
     const [createOpen, setCreateOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+
+    const [editingCommittee, setEditingCommittee] = useState<SmallCommittee | null>(null);
+
+    const [positionDialogOpen, setPositionDialogOpen] = useState(false);
+    const [editingPosition, setEditingPosition] = useState<OrganizationPosition | null>(null);
+    const [positionDraft, setPositionDraft] = useState({
+        level: "committee" as OrgLevel,
+        name: "",
+        id_name: "",
+        role: "",
+        position: "",
+        photo: "",
+        sort_order: "",
+    });
 
     const [draftName, setDraftName] = useState("");
     const [draftDescription, setDraftDescription] = useState("");
@@ -83,16 +120,60 @@ export default function YouthOrganization() {
         }
     }, [toast]);
 
+    const fetchPositions = useCallback(async () => {
+        try {
+            setLoadingPositions(true);
+            const data = await apiGet<OrganizationPosition[]>("/organization/positions");
+            setPositions(data);
+        } catch (error: any) {
+            console.error("Failed to load organization positions:", error);
+            toast({
+                title: "Error",
+                description: error?.message || "Failed to load organization positions",
+                variant: "destructive",
+            });
+        } finally {
+            setLoadingPositions(false);
+        }
+    }, [toast]);
+
     useEffect(() => {
         fetchCommittees();
-    }, [fetchCommittees]);
+        fetchPositions();
+    }, [fetchCommittees, fetchPositions]);
 
     const canCreate = isYouthCommittee;
 
     const resetDraft = useCallback(() => {
+        setEditingCommittee(null);
         setDraftName("");
         setDraftDescription("");
         setDraftDepartments([{ name: "", members: [{ member_name: "", role: "" }] }]);
+    }, []);
+
+    const openCreateCommittee = useCallback(() => {
+        resetDraft();
+        setCreateOpen(true);
+    }, [resetDraft]);
+
+    const openEditCommittee = useCallback((committee: SmallCommittee) => {
+        setEditingCommittee(committee);
+        setDraftName(committee.name || "");
+        setDraftDescription(committee.description || "");
+        setDraftDepartments(
+            (committee.departments || []).length
+                ? committee.departments.map((d) => ({
+                      name: d.name || "",
+                      members: (d.members || []).length
+                          ? (d.members || []).map((m) => ({
+                                member_name: m.member_name || "",
+                                role: m.role || "",
+                            }))
+                          : [{ member_name: "", role: "" }],
+                  }))
+                : [{ name: "", members: [{ member_name: "", role: "" }] }]
+        );
+        setCreateOpen(true);
     }, []);
 
     const addDepartment = useCallback(() => {
@@ -147,7 +228,7 @@ export default function YouthOrganization() {
         []
     );
 
-    const handleCreate = useCallback(async () => {
+    const handleSaveCommittee = useCallback(async () => {
         try {
             setSubmitting(true);
 
@@ -176,22 +257,27 @@ export default function YouthOrganization() {
                 return;
             }
 
-            await apiPost<SmallCommittee>("/organization/small-committees", payload);
-            toast({ title: "Saved", description: "Small committee created" });
+            if (editingCommittee) {
+                await apiPut<SmallCommittee>(`/organization/small-committees/${editingCommittee.id}`, payload);
+                toast({ title: "Saved", description: "Small committee updated" });
+            } else {
+                await apiPost<SmallCommittee>("/organization/small-committees", payload);
+                toast({ title: "Saved", description: "Small committee created" });
+            }
             setCreateOpen(false);
             resetDraft();
             fetchCommittees();
         } catch (error: any) {
-            console.error("Failed to create small committee:", error);
+            console.error("Failed to save small committee:", error);
             toast({
                 title: "Error",
-                description: error?.message || "Failed to create small committee",
+                description: error?.message || "Failed to save small committee",
                 variant: "destructive",
             });
         } finally {
             setSubmitting(false);
         }
-    }, [draftName, draftDescription, draftDepartments, toast, resetDraft, fetchCommittees]);
+    }, [draftName, draftDescription, draftDepartments, toast, resetDraft, fetchCommittees, editingCommittee]);
 
     const handleDelete = useCallback(
         async (committee: SmallCommittee) => {
@@ -214,6 +300,99 @@ export default function YouthOrganization() {
         [fetchCommittees, isYouthCommittee, toast]
     );
 
+    const openCreatePosition = useCallback(() => {
+        setEditingPosition(null);
+        setPositionDraft({
+            level: "committee",
+            name: "",
+            id_name: "",
+            role: "",
+            position: "",
+            photo: "",
+            sort_order: "",
+        });
+        setPositionDialogOpen(true);
+    }, []);
+
+    const openEditPosition = useCallback((p: OrganizationPosition) => {
+        setEditingPosition(p);
+        setPositionDraft({
+            level: p.level,
+            name: p.name || "",
+            id_name: p.id_name || "",
+            role: p.role || "",
+            position: p.position || "",
+            photo: p.photo || "",
+            sort_order: p.sort_order == null ? "" : String(p.sort_order),
+        });
+        setPositionDialogOpen(true);
+    }, []);
+
+    const savePosition = useCallback(async () => {
+        if (!isYouthCommittee) return;
+        if (!positionDraft.name.trim() || !positionDraft.role.trim() || !positionDraft.position.trim()) {
+            toast({
+                title: "Validation",
+                description: "Name, role, and position are required",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        const payload: Record<string, unknown> = {
+            level: positionDraft.level,
+            name: positionDraft.name.trim(),
+            id_name: positionDraft.id_name ? positionDraft.id_name : null,
+            role: positionDraft.role.trim(),
+            position: positionDraft.position.trim(),
+            photo: positionDraft.photo ? positionDraft.photo : null,
+            sort_order: positionDraft.sort_order ? Number(positionDraft.sort_order) : null,
+        };
+
+        try {
+            setSubmitting(true);
+            if (editingPosition) {
+                await apiPut<OrganizationPosition>(`/organization/positions/${editingPosition.id}`, payload);
+                toast({ title: "Saved", description: "Position updated" });
+            } else {
+                await apiPost<OrganizationPosition>("/organization/positions", payload);
+                toast({ title: "Saved", description: "Position created" });
+            }
+            setPositionDialogOpen(false);
+            fetchPositions();
+        } catch (error: any) {
+            console.error("Failed to save position:", error);
+            toast({
+                title: "Error",
+                description: error?.message || "Failed to save position",
+                variant: "destructive",
+            });
+        } finally {
+            setSubmitting(false);
+        }
+    }, [editingPosition, fetchPositions, isYouthCommittee, positionDraft, toast]);
+
+    const deletePosition = useCallback(
+        async (p: OrganizationPosition) => {
+            if (!isYouthCommittee) return;
+            const ok = window.confirm(`Delete '${p.name}'?`);
+            if (!ok) return;
+            try {
+                await apiDelete(`/organization/positions/${p.id}`);
+                toast({ title: "Deleted", description: "Position deleted" });
+                fetchPositions();
+            } catch (error: any) {
+                console.error("Failed to delete position:", error);
+                toast({
+                    title: "Error",
+                    description: error?.message || "Failed to delete position",
+                    variant: "destructive",
+                });
+            }
+        },
+        [fetchPositions, isYouthCommittee, toast]
+    );
+
     const sortedCommittees = useMemo(() => {
         return [...committees].sort((a, b) => a.name.localeCompare(b.name));
     }, [committees]);
@@ -221,6 +400,73 @@ export default function YouthOrganization() {
     return (
         <div className="space-y-6">
             <OrganizationalChart showTitle={true} />
+
+            <Card className="rounded-2xl">
+                <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <CardTitle>Organization Positions</CardTitle>
+                            <CardDescription>Manage leadership positions shown in the chart.</CardDescription>
+                        </div>
+
+                        {isYouthCommittee ? (
+                            <Button className="rounded-xl" onClick={openCreatePosition}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Position
+                            </Button>
+                        ) : null}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {loadingPositions ? (
+                        <p className="text-sm text-muted-foreground">Loading positions...</p>
+                    ) : null}
+
+                    {!loadingPositions && positions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No positions yet.</p>
+                    ) : null}
+
+                    <div className="space-y-3">
+                        {positions.map((p) => (
+                            <div
+                                key={p.id}
+                                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 rounded-2xl bg-muted/30"
+                            >
+                                <div>
+                                    <p className="font-medium">{p.name}</p>
+                                    <p className="text-sm text-muted-foreground">{p.role} • {p.position}</p>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        <Badge variant="secondary" className="rounded-full">{p.level}</Badge>
+                                        {p.id_name ? <Badge variant="secondary" className="rounded-full">{p.id_name}</Badge> : null}
+                                        {p.sort_order != null ? (
+                                            <Badge variant="secondary" className="rounded-full">Sort: {p.sort_order}</Badge>
+                                        ) : null}
+                                    </div>
+                                </div>
+
+                                {isYouthCommittee ? (
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            className="rounded-xl"
+                                            onClick={() => openEditPosition(p)}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="rounded-xl"
+                                            onClick={() => deletePosition(p)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ) : null}
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card className="rounded-2xl">
                 <CardHeader>
@@ -235,7 +481,7 @@ export default function YouthOrganization() {
                         {canCreate ? (
                             <Button
                                 className="rounded-xl"
-                                onClick={() => setCreateOpen(true)}
+                                onClick={openCreateCommittee}
                             >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Committee
@@ -265,14 +511,24 @@ export default function YouthOrganization() {
                                         </div>
 
                                         {isYouthCommittee ? (
-                                            <Button
-                                                variant="outline"
-                                                className="rounded-xl"
-                                                onClick={() => handleDelete(committee)}
-                                            >
-                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                Delete
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    className="rounded-xl"
+                                                    onClick={() => openEditCommittee(committee)}
+                                                >
+                                                    <Pencil className="h-4 w-4 mr-2" />
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className="rounded-xl"
+                                                    onClick={() => handleDelete(committee)}
+                                                >
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    Delete
+                                                </Button>
+                                            </div>
                                         ) : null}
                                     </div>
                                 </CardHeader>
@@ -325,7 +581,7 @@ export default function YouthOrganization() {
             }}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>Create Small Committee</DialogTitle>
+                        <DialogTitle>{editingCommittee ? "Edit Small Committee" : "Create Small Committee"}</DialogTitle>
                         <DialogDescription>Add departments and members.</DialogDescription>
                     </DialogHeader>
 
@@ -451,8 +707,84 @@ export default function YouthOrganization() {
                         >
                             Cancel
                         </Button>
-                        <Button className="rounded-xl" onClick={handleCreate} disabled={submitting}>
-                            Create
+                        <Button className="rounded-xl" onClick={handleSaveCommittee} disabled={submitting}>
+                            Save
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={positionDialogOpen} onOpenChange={setPositionDialogOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>{editingPosition ? "Edit Position" : "Add Position"}</DialogTitle>
+                        <DialogDescription>Position information for the organization chart.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">Level</label>
+                            <Select
+                                value={positionDraft.level}
+                                onValueChange={(v) => setPositionDraft((p) => ({ ...p, level: v as OrgLevel }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select level" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="vision">vision</SelectItem>
+                                    <SelectItem value="executive">executive</SelectItem>
+                                    <SelectItem value="leader">leader</SelectItem>
+                                    <SelectItem value="committee">committee</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">Name</label>
+                                <Input value={positionDraft.name} onChange={(e) => setPositionDraft((p) => ({ ...p, name: e.target.value }))} />
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">ID Name</label>
+                                <Input value={positionDraft.id_name} onChange={(e) => setPositionDraft((p) => ({ ...p, id_name: e.target.value }))} />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">Role</label>
+                                <Input value={positionDraft.role} onChange={(e) => setPositionDraft((p) => ({ ...p, role: e.target.value }))} />
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">Position</label>
+                                <Input value={positionDraft.position} onChange={(e) => setPositionDraft((p) => ({ ...p, position: e.target.value }))} />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">Photo URL</label>
+                                <Input value={positionDraft.photo} onChange={(e) => setPositionDraft((p) => ({ ...p, photo: e.target.value }))} />
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">Sort Order</label>
+                                <Input type="number" value={positionDraft.sort_order} onChange={(e) => setPositionDraft((p) => ({ ...p, sort_order: e.target.value }))} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            className="rounded-xl"
+                            onClick={() => setPositionDialogOpen(false)}
+                            disabled={submitting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button className="rounded-xl" onClick={savePosition} disabled={submitting}>
+                            Save
                         </Button>
                     </DialogFooter>
                 </DialogContent>

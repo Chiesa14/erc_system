@@ -73,6 +73,7 @@ const App = () => (
                       <Route path="communication" element={<Communication />} />
                       <Route path="documents" element={<Documents />} />
                       <Route path="delegation" element={<Delegation />} />
+                      <Route path="anti-drugs" element={<AntiDrugsBrigade />} />
                     </Routes>
                   </ParentLayout>
                 </ProtectedRoute>
@@ -127,6 +128,9 @@ const App = () => (
                         element={<ChurchEndorsements />}
                       />
                       <Route path="bcc" element={<YouthBccFollowUp />} />
+                      <Route path="anti-drugs" element={<AntiDrugsBrigade />} />
+                      <Route path="worship-team" element={<WorshipTeam />} />
+                      <Route path="organization" element={<YouthOrganization />} />
                     </Routes>
                   </ChurchLayout>
                 </ProtectedRoute>
@@ -178,6 +182,36 @@ const App = () => (
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <AdminLayout>
                     <YouthBccFollowUp />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/anti-drugs"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminLayout>
+                    <AntiDrugsBrigade />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/worship-team"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminLayout>
+                    <WorshipTeam />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/organization"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminLayout>
+                    <YouthOrganization />
                   </AdminLayout>
                 </ProtectedRoute>
               }

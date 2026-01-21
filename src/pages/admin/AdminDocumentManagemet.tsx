@@ -330,12 +330,43 @@ export default function AdminDocumentManagement() {
       const titlePart = reportTypeLabel ? `${title} - ${reportTypeLabel}` : title;
       const filenameBase = familyPart ? `${titlePart} - ${familyPart}` : titlePart;
       const filename = reportTime ? `${filenameBase} - ${reportTime}` : filenameBase;
+
+      const familyDisplay = doc.family?.name
+        ? `${doc.family?.category ? `${doc.family.category} - ` : ""}${doc.family.name} Family`
+        : doc.family_id
+          ? `Family ID: ${doc.family_id}`
+          : "";
+
+      const header = (
+        <div className="space-y-1">
+          <div className="text-xl font-semibold">{title}</div>
+          {reportTypeLabel ? (
+            <div className="text-sm text-muted-foreground">{reportTypeLabel}</div>
+          ) : null}
+          {familyDisplay ? (
+            <div className="text-sm text-muted-foreground">{familyDisplay}</div>
+          ) : null}
+          {reportTime ? (
+            <div className="text-sm text-muted-foreground">{reportTime}</div>
+          ) : null}
+        </div>
+      );
+
       if (doc.type === "letter") {
-        await exportHtmlToPdf(doc.content_html || "", filename);
+        await exportReactNodeToPdf(
+          <div className="space-y-4">
+            {header}
+            <div
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: doc.content_html || "" }}
+            />
+          </div>,
+          filename
+        );
       } else {
         await exportReactNodeToPdf(
           <div className="space-y-4">
-            <div className="text-xl font-semibold">{title}</div>
+            {header}
             <ReportViewer contentJson={doc.content_json} />
           </div>,
           filename
